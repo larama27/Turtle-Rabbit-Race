@@ -1,0 +1,1602 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <title>Turtle Rabbit Race</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        --bg: #eaf6df;
+        --bg2: #d9efc6;
+        --panel: #ffffff;
+        --panel-edge: #cfe3ba;
+        --ink: #22401a;
+        --ink-soft: #4c6b3e;
+        --turtle: #2f9e44;
+        --turtle-dark: #1f7a33;
+        --rabbit: #d6336c;
+        --gold: #f2a007;
+        --btn-shadow: rgba(34, 64, 26, .22);
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #16240f;
+          --bg2: #101a0a;
+          --panel: #213317;
+          --panel-edge: #38542a;
+          --ink: #eef9e2;
+          --ink-soft: #bcd3a4;
+          --turtle: #4cc963;
+          --turtle-dark: #2f9e44;
+          --rabbit: #f06595;
+          --btn-shadow: rgba(0,0,0,.45);
+        }
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; }
+      body {
+        font-family: "Nunito", system-ui, sans-serif;
+        background: linear-gradient(180deg, var(--bg), var(--bg2));
+        color: var(--ink);
+        min-height: 100vh;
+      }
+      button { font-family: inherit; cursor: pointer; }
+      button, [role="button"] { min-height: 2.25rem; }
+      .wrap { max-width: 1020px; margin: 0 auto; padding: 14px 14px 34px; }
+
+      /* ---------- HUD ---------- */
+      .hud {
+        background: var(--panel);
+        border: 2px solid var(--panel-edge);
+        border-radius: 18px;
+        padding: 12px 16px 14px;
+        display: grid;
+        gap: 10px;
+        box-shadow: 0 4px 14px var(--btn-shadow);
+      }
+      .hud-top {
+        display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; justify-content: space-between;
+        font-family: "Fredoka", sans-serif; font-weight: 600;
+      }
+      .hud-top .big { font-size: 1.25rem; }
+      .chip {
+        background: var(--bg); border: 2px solid var(--panel-edge); border-radius: 999px;
+        padding: 4px 14px; font-size: 1rem; white-space: nowrap;
+      }
+      .race-bar { display: grid; grid-template-columns: 138px 1fr 52px; align-items: center; gap: 10px; }
+      .race-bar .who { font-family: "Fredoka", sans-serif; font-weight: 600; font-size: 1.02rem; display: flex; align-items: center; gap: 6px; }
+      .race-bar .who small { font-family: "Nunito", sans-serif; font-weight: 800; color: var(--ink-soft); font-size: .82rem; white-space: nowrap; }
+      .dot { width: 16px; height: 16px; border-radius: 50%; flex: none; border: 2px solid rgba(0,0,0,.18); }
+      .dot.t { background: var(--turtle); } .dot.r { background: var(--rabbit); }
+      .trackbar { height: 20px; border-radius: 999px; background: var(--bg); border: 2px solid var(--panel-edge); overflow: hidden; position: relative; }
+      .trackbar .fill { height: 100%; width: 0%; border-radius: 999px; transition: width .12s linear; }
+      .fill.t { background: repeating-linear-gradient(45deg, var(--turtle) 0 14px, var(--turtle-dark) 14px 28px); }
+      .fill.r { background: repeating-linear-gradient(45deg, #f06595 0 14px, var(--rabbit) 14px 28px); }
+      .trackbar .flag { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); font-size: .8rem; }
+      .race-bar .lap { font-weight: 800; font-size: .95rem; color: var(--ink-soft); text-align: right; }
+
+      /* ---------- Round picker ---------- */
+      .rounds {
+        display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 14px;
+      }
+      .round-btn {
+        background: var(--panel); color: var(--ink); border: 2px solid var(--panel-edge);
+        border-radius: 16px; padding: 10px 8px 12px; min-height: 64px;
+        font-family: "Fredoka", sans-serif; font-weight: 600; text-align: center;
+        box-shadow: 0 4px 10px var(--btn-shadow);
+      }
+      .round-btn .rname { display: block; font-size: 1.18rem; line-height: 1.15; }
+      .round-btn .rtrack { display: block; font-family: "Nunito", sans-serif; font-weight: 800; font-size: .86rem; color: var(--ink-soft); margin-top: 2px; }
+      .round-btn[aria-pressed="true"] { background: var(--turtle); border-color: var(--turtle-dark); color: #fff; }
+      .round-btn[aria-pressed="true"] .rtrack { color: rgba(255,255,255,.88); }
+      .round-btn:active { transform: translateY(2px); }
+      @media (max-width: 620px) {
+        .rounds { gap: 7px; }
+        .round-btn .rname { font-size: 1rem; }
+        .round-btn .rtrack { font-size: .76rem; }
+      }
+
+      /* ---------- Stage ---------- */
+      .stage {
+        position: relative; margin-top: 14px;
+        border-radius: 22px; overflow: hidden;
+        border: 3px solid #5d9c46;
+        box-shadow: 0 10px 26px var(--btn-shadow);
+        background: #79c25f;
+      }
+      canvas { display: block; width: 100%; height: auto; }
+      .commentary {
+        position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%);
+        max-width: 92%; width: max-content;
+        background: rgba(20, 38, 12, .88); color: #fff;
+        font-family: "Fredoka", sans-serif; font-weight: 600; font-size: clamp(1rem, 2.6vw, 1.3rem);
+        padding: 9px 20px; border-radius: 999px; text-align: center;
+        pointer-events: none;
+      }
+      .overlay {
+        position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+        background: rgba(18, 34, 10, .55); padding: 16px;
+      }
+      .overlay[hidden] { display: none; }
+      .card {
+        background: var(--panel); color: var(--ink); border-radius: 22px; border: 3px solid var(--panel-edge);
+        max-width: 580px; width: 100%; padding: 22px 24px; text-align: center;
+        box-shadow: 0 14px 34px rgba(0,0,0,.3);
+        max-height: 100%; overflow: auto;
+      }
+      .card h1, .card h2 { font-family: "Fredoka", sans-serif; margin: 0 0 6px; line-height: 1.1; }
+      .card h1 { font-size: clamp(1.9rem, 5.5vw, 2.7rem); }
+      .card h2 { font-size: clamp(1.55rem, 5vw, 2.25rem); }
+      .card p { font-size: 1.08rem; margin: 6px 0; color: var(--ink-soft); font-weight: 700; }
+      .secret {
+        background: #fff3bf; border: 2px dashed var(--gold); border-radius: 14px;
+        padding: 10px 14px; margin: 12px auto 2px; max-width: 470px;
+        color: #664d03; font-weight: 800; font-size: 1.05rem;
+      }
+      @media (prefers-color-scheme: dark) { .secret { background: #3d3410; color: #ffe08a; } }
+      .steps { text-align: left; margin: 14px auto 4px; max-width: 450px; display: grid; gap: 10px; }
+      .step { display: flex; gap: 12px; align-items: flex-start; font-size: 1.05rem; font-weight: 700; }
+      .step .num {
+        flex: none; width: 34px; height: 34px; border-radius: 50%;
+        background: var(--turtle); color: #fff; font-family: "Fredoka", sans-serif; font-weight: 700;
+        display: flex; align-items: center; justify-content: center; font-size: 1.1rem;
+      }
+      .step small { display: block; color: var(--ink-soft); font-weight: 700; }
+      .countdown-num {
+        font-family: "Fredoka", sans-serif; font-weight: 700; color: #fff;
+        font-size: clamp(4rem, 18vw, 8rem); text-shadow: 0 6px 0 rgba(0,0,0,.25);
+      }
+      .stats { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin: 14px 0 4px; }
+      .stat { background: var(--bg); border: 2px solid var(--panel-edge); border-radius: 14px; padding: 8px 16px; font-weight: 800; }
+      .stat span { display: block; font-family: "Fredoka", sans-serif; font-size: 1.5rem; }
+
+      /* ---------- Buttons ---------- */
+      .btn {
+        border: none; border-radius: 16px; font-family: "Fredoka", sans-serif; font-weight: 600;
+        box-shadow: 0 5px 0 var(--btn-shadow); transition: transform .06s, box-shadow .06s, filter .15s;
+      }
+      .btn:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--btn-shadow); }
+      .btn-big {
+        background: var(--turtle); color: #fff; font-size: clamp(1.4rem, 4.5vw, 1.9rem);
+        padding: 16px 34px; margin-top: 14px; min-height: 64px;
+      }
+      .btn-big:hover { filter: brightness(1.07); }
+      .watchbar { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+      .btn-tool {
+        background: var(--panel); color: var(--ink); border: 2px solid var(--panel-edge);
+        font-family: "Fredoka", sans-serif; font-weight: 600;
+        font-size: 1.05rem; padding: 10px 18px; border-radius: 999px; min-height: 52px;
+        display: inline-flex; align-items: center; gap: 7px;
+        box-shadow: 0 4px 10px var(--btn-shadow);
+      }
+      .btn-tool[aria-pressed="true"] { background: var(--turtle); color: #fff; border-color: var(--turtle-dark); }
+
+      /* ---------- Baskets ---------- */
+      .baskets { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
+      .basket {
+        background: var(--panel); border: 2px solid var(--panel-edge); border-radius: 18px; padding: 12px 16px;
+        box-shadow: 0 4px 14px var(--btn-shadow); min-height: 104px;
+      }
+      .basket.leading { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(242,160,7,.35), 0 4px 14px var(--btn-shadow); }
+      .basket h3 { margin: 0 0 6px; font-family: "Fredoka", sans-serif; font-weight: 600; font-size: 1.1rem; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+      .basket h3 .lead-tag { font-size: .8rem; background: var(--gold); color: #4a2f00; border-radius: 999px; padding: 2px 10px; font-family: "Nunito", sans-serif; font-weight: 800; }
+      .basket .items { font-size: 1.55rem; line-height: 1.5; letter-spacing: 2px; overflow-wrap: break-word; }
+      .basket .none { color: var(--ink-soft); font-weight: 700; font-size: 1rem; }
+      .howto {
+        margin-top: 14px; background: var(--panel); border: 2px solid var(--panel-edge); border-radius: 18px;
+        padding: 14px 18px; box-shadow: 0 4px 14px var(--btn-shadow);
+      }
+      .howto h3 { margin: 0 0 8px; font-family: "Fredoka", sans-serif; font-weight: 600; font-size: 1.15rem; }
+      .howto ul { margin: 0; padding-left: 22px; font-weight: 700; color: var(--ink-soft); display: grid; gap: 5px; font-size: 1rem; }
+      .howto b { color: var(--ink); }
+
+      /* ---------- Ad break ---------- */
+      .ad-slot {
+        position: relative; border: 3px dashed var(--gold); border-radius: 16px;
+        background: var(--bg); padding: 22px 14px 16px; margin: 16px auto 6px; max-width: 470px;
+      }
+      .ad-tag {
+        position: absolute; top: -11px; left: 14px; background: var(--gold); color: #4a2f00;
+        font-size: .72rem; font-weight: 800; letter-spacing: .12em; padding: 2px 10px; border-radius: 999px;
+      }
+      .ad-emoji { font-size: 2.6rem; line-height: 1; }
+      .ad-title { font-family: "Fredoka", sans-serif; font-weight: 700; font-size: 1.45rem; margin-top: 6px; }
+      .ad-sub { color: var(--ink-soft); font-weight: 700; margin-top: 2px; }
+      .break-count { font-family: "Fredoka", sans-serif; font-weight: 600; font-size: 1.1rem; margin-top: 12px; }
+      .break-note { font-size: .95rem !important; }
+      @media (max-width: 620px) {
+        .baskets { grid-template-columns: 1fr; }
+        .race-bar { grid-template-columns: 108px 1fr 44px; }
+        .race-bar .who { flex-wrap: wrap; row-gap: 0; }
+        .race-bar .who small { width: 100%; margin-left: 22px; }
+      }
+      /* On phones the course is short and wide, so pop-ups take the full
+         screen instead of squeezing into the course area. */
+      @media (max-width: 700px) {
+        .overlay { position: fixed; inset: 0; z-index: 60; }
+        .card { max-height: 94vh; }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="wrap">
+      <!-- HUD -->
+      <section class="hud" aria-label="Race scoreboard">
+        <div class="hud-top">
+          <span class="big">🏁 Turtle vs Rabbit</span>
+          <span class="chip" id="roundChip">Round 1 · Easy</span>
+          <span class="chip" id="lapChip">Lap 1 of 2</span>
+          <span class="chip" id="timerChip">⏱ 0:00</span>
+          <span class="chip" id="foundChip">🧺 Found 0 of 12</span>
+        </div>
+        <div class="race-bar">
+          <span class="who"><span class="dot t"></span>Turtle <small id="turtleFinds">0 found</small></span>
+          <div class="trackbar"><div class="fill t" id="turtleBar"></div><span class="flag">🏁</span></div>
+          <span class="lap" id="turtlePct">0%</span>
+        </div>
+        <div class="race-bar">
+          <span class="who"><span class="dot r"></span>Rabbit <small id="rabbitFinds">0 found</small></span>
+          <div class="trackbar"><div class="fill r" id="rabbitBar"></div><span class="flag">🏁</span></div>
+          <span class="lap" id="rabbitPct">0%</span>
+        </div>
+      </section>
+
+      <!-- Round picker: three episodes, each harder -->
+      <nav class="rounds" aria-label="Choose a round">
+        <button class="round-btn" data-round="0" aria-pressed="true"><span class="rname">Round 1</span><span class="rtrack">Garden Curves · Easy ⭐</span></button>
+        <button class="round-btn" data-round="1" aria-pressed="false"><span class="rname">Round 2</span><span class="rtrack">Serpent Run · Harder ⭐⭐</span></button>
+        <button class="round-btn" data-round="2" aria-pressed="false"><span class="rname">Round 3</span><span class="rtrack">Squiggly Hills · Real Hard ⭐⭐⭐</span></button>
+      </nav>
+
+      <!-- Stage -->
+      <div class="stage">
+        <canvas id="game" width="960" height="600" aria-label="Race course: a winding garden track with curves and bends like a race-car track, where the turtle and rabbit race on their own and search bushes, trees and rocks for hidden fruit and vegetables"></canvas>
+        <div class="commentary" id="commentary">Ready when you are!</div>
+
+        <div class="overlay" id="startOverlay">
+          <div class="card">
+            <h1>🐢 Turtle Rabbit Race 🐇</h1>
+            <p id="startRoundTitle" style="font-family:Fredoka,sans-serif; font-size:1.3rem; color:var(--ink);">Round 1 — Garden Curves · Easy ⭐</p>
+            <p id="startRoundDesc">Sit back and watch them race around the winding garden course — gentle curves and bends like a real race-car track, all on their own! This is the easy round: a wide track, 2 laps, 12 hidden treats and 6 crates.</p>
+            <p><b>Three rounds, each one harder:</b> Round 1 is easy, Round 2 has a different, twistier track, and Round 3 is real hard — the tightest track, the fastest racing, and the trickiest hiding spots. Pick a round up top, or play them in order!</p>
+            <div class="steps">
+              <div class="step"><span class="num">1</span><div><b>They race by themselves.</b><small>Rabbit is fast but naps and brags. Turtle is slow and steady.</small></div></div>
+              <div class="step"><span class="num">2</span><div><b>They hunt as they go.</b><small>Fruit &amp; veggies are hidden behind bushes, trees, rocks, hay and barrels — and both racers search for them.</small></div></div>
+              <div class="step"><span class="num">3</span><div><b>Watch their baskets fill up.</b><small>Steady Turtle checks almost every hiding spot. Speedy Rabbit zooms right past a lot of them!</small></div></div>
+              <div class="step"><span class="num">4</span><div><b>They smash the crates!</b><small>Wooden crates sit right on the track. The racers hop on top and break them open for diamonds, crystals, mushrooms and bonus treats — and treasures count toward the win! A <b>diamond 💎 is worth 3 points</b>, everything else is worth 1 — so a diamond crate can flip the whole race!</small></div></div>
+            </div>
+            <div class="secret">🤫 The secret: whoever collects the <u>most points</u> wins! Treats are 1 point, a <u>diamond 💎 counts as 3 points</u> — and whoever <u>crosses the finish line first gets +5 bonus points</u>! That bonus can flip the race, so finishing first matters — but treasures still count most. <span id="startBunkNote"></span></div>
+            <p>📺 And just like on TV, there's a quick commercial break after the finish — then the winner is announced!</p>
+            <button class="btn btn-big" id="startBtn">▶ Start Round 1</button>
+          </div>
+        </div>
+
+        <div class="overlay" id="countOverlay" hidden>
+          <div class="countdown-num" id="countNum">3</div>
+        </div>
+
+        <div class="overlay" id="endOverlay" hidden>
+          <div class="card">
+            <h2 id="endTitle">🐢 Turtle Wins!</h2>
+            <p id="endText">Slow and steady does it again!</p>
+            <div class="stats">
+              <div class="stat">🐢 Turtle found<span id="endTurtle">0</span></div>
+              <div class="stat">🐇 Rabbit found<span id="endRabbit">0</span></div>
+              <div class="stat">Crossed first<span id="endFirst">—</span></div>
+              <div class="stat">🐢 Treasures<span id="endTTreasure">0</span></div>
+              <div class="stat">🐇 Treasures<span id="endRTreasure">0</span></div>
+              <div class="stat">🐢 Points<span id="endTPoints">0</span></div>
+              <div class="stat">🐇 Points<span id="endRPoints">0</span></div>
+              <div class="stat">🏁 First-finish bonus +5<span id="endBonus">—</span></div>
+              <div class="stat">🐢 Diamonds 💎<span id="endTDiamonds">0</span></div>
+              <div class="stat">🐇 Diamonds 💎<span id="endRDiamonds">0</span></div>
+            </div>
+            <p id="endBasket" style="font-size:1.5rem; letter-spacing:2px;"></p>
+            <button class="btn btn-big" id="nextRoundBtn">▶ Next: Round 2 — Harder!</button>
+            <br />
+            <button class="btn btn-big" id="againBtn" style="background:var(--panel); color:var(--ink); border:2px solid var(--panel-edge); font-size:1.15rem; padding:12px 24px; min-height:52px;">↻ Watch This Round Again</button>
+          </div>
+        </div>
+
+        <div class="overlay" id="breakOverlay" hidden>
+          <div class="card">
+            <h2>📺 Ad Break</h2>
+            <p>The race is over — the winner is announced right after the break!</p>
+            <div class="ad-slot">
+              <span class="ad-tag">AD SLOT</span>
+              <div id="adCreative"></div>
+            </div>
+            <p class="break-note">This is an ad slot, ready to connect to an ad account.</p>
+            <div class="break-count" id="breakCount">Back with the winner in 9…</div>
+            <button class="btn btn-big" id="skipBreakBtn">Skip Break ▸</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Watch controls -->
+      <div class="watchbar" aria-label="Watch controls">
+        <button class="btn-tool" id="pauseBtn">⏸ Pause</button>
+        <button class="btn-tool" id="speedBtn" aria-pressed="false">⏩ Speed: Normal</button>
+        <button class="btn-tool" id="soundBtn" aria-pressed="true">🔊 Sound: On</button>
+        <button class="btn-tool" id="voiceBtn" aria-pressed="false">🗣️ Read It Aloud: Off</button>
+        <button class="btn-tool" id="restartBtn">↻ New Race</button>
+      </div>
+
+      <!-- Baskets -->
+      <section class="baskets" aria-label="Collected fruit and vegetables">
+        <div class="basket" id="turtleBasketCard">
+          <h3>🐢 Turtle's Basket <span class="lead-tag" id="turtleLead" hidden>★ WINNING</span> <span id="turtleCount">0</span></h3>
+          <div class="items" id="turtleBasket"><span class="none">Nothing yet — watch Turtle search the hiding spots!</span></div>
+        </div>
+        <div class="basket" id="rabbitBasketCard">
+          <h3>🐇 Rabbit's Basket <span class="lead-tag" id="rabbitLead" hidden>★ WINNING</span> <span id="rabbitCount">0</span></h3>
+          <div class="items" id="rabbitBasket"><span class="none">Nothing yet.</span></div>
+        </div>
+      </section>
+
+      <section class="howto">
+        <h3>How the race works</h3>
+        <ul>
+          <li><b>Just watch</b> — Turtle and Rabbit race and search all on their own around the winding course, curves and bends and all.</li>
+          <li><b>Three rounds, each harder:</b> <b>Round 1 · Garden Curves (Easy)</b> — wide track, gentle bends, 2 laps, 12 treats, 6 crates. <b>Round 2 · Serpent Run (Harder)</b> — a twisty serpent track nothing like Round 1: a hairpin jabbing deep into the middle, a valley dipping across the top and a zigzag chicane down the side, all on a much narrower road, with faster racing, 14 treats and 8 crates that are harder to spot. <b>Round 3 · Squiggly Hills (Real Hard)</b> — a brand-new track covered in squiggly lines, wiggling and zigzagging on every side with tight S-curves the whole way round, the narrowest road, the fastest racing, 3 laps, 16 treats and 10 crates, and the sneakiest hiding spots of all. Tap a round at the top to jump straight to it, or finish a round and tap <b>Next</b> to move up.</li>
+          <li><b>🚧 Bunk roads — Round 3 only!</b> Three bunk roads branch off the Squiggly Hills track and <b>they all look the same</b>. <b>Two are fake</b> — dead ends with rocks and a barrier, nowhere to go: turn down one and a racer gets <b>all messed up</b>, stuck and dizzy, then has to turn around and come back while the other racer keeps collecting. But <b>one bunk road is REAL</b> — it leads to a <b>hidden treasure pile</b> of coins 🪙 and diamonds 💎 (3 points each)! Nobody knows which one is real until they reach the end of it — and the first racer down the real road gets the treasure; once it's taken, it's gone.</li>
+          <li><b>🛣️ Side road — Round 2 only!</b> One side road branches off Serpent Run to a <b>Treasure Stop</b>. Each racer can <b>pass it by</b> and keep racing, or <b>stop off</b> — stopping takes a little time, but at the stop they can collect <b>extra coins 🪙 (1 point each) and diamonds 💎 (3 points each)</b> that are not on the main track at all. First one to stop off gets first pick — whatever they take is gone for the other racer!</li>
+          <li><b>💎 Diamond crates = extra points!</b> Some crates hold a <b>diamond</b> — you can spot them by the 💎 sparkling on the crate. A diamond counts as <b>3 points</b> toward winning, while a treat, coin, crystal or mushroom counts as 1. One diamond crate can jump a racer from behind to winning!</li>
+          <li><b>Rabbit is speedy</b> — it zooms, then gets tired, brags, and even takes naps. And zooming means it rushes past hiding spots without looking!</li>
+          <li><b>Turtle is steady</b> — it never naps, and it stops to check almost every bush, tree and rock it passes.</li>
+          <li><b>Treats are hidden</b> every race — 12 in Round 1, more in the harder rounds — in new places each time.</li>
+          <li><b>Wooden crates</b> sit on the track every race — 6 in Round 1, and more in Rounds 2 and 3. When a racer reaches one, it hops on top and smashes it open — out pop <b>diamonds 💎, crystals 🔮, mushrooms 🍄 and bonus treats</b>. Every treasure goes in the basket and counts toward the win — and a <b>diamond counts extra: 3 points</b> instead of 1. Zooming Rabbit flies right past crates it never even sees!</li>
+          <li><b>Commercial break:</b> when both racers finish, there's a short sponsor break — just like a show on TV — and then the winner is announced.</li>
+          <li><b>🏁 First across the finish line gets +5 bonus points!</b> The first racer to cross adds <b>5 extra points</b> to their total right away — only the first one gets it, the second racer gets no bonus. That +5 can jump a racer into the lead, or make a close race even closer!</li>
+          <li><b>The secret rule:</b> <b>Whoever has the most points at the end is the winner.</b> Hidden treats, coins, crystals and mushrooms are <b>1 point</b> each, and <b>diamonds are 3 points</b> each, whether they come from a crate, from the Round 2 Treasure Stop, or from the real bunk road's treasure pile in Round 3 — plus the <b>+5 first-finish bonus</b> for crossing first. So finishing first helps a lot, but collecting treasures still matters most. Turtle wins a lot of races… but not every time. If the points are tied, whoever crossed first takes it.</li>
+        </ul>
+      </section>
+    </main>
+
+    <script>
+      (function () {
+        "use strict";
+        var canvas = document.getElementById("game");
+        var ctx = canvas.getContext("2d");
+        var W = 960, H = 600;
+
+        // ---------- Three rounds: three different tracks, each harder ----------
+        // Every round is its own episode with its own winding race-car-style
+        // course — NOT an oval. Control points are listed from the start /
+        // finish at the bottom, heading west first. A smooth Catmull-Rom
+        // spline runs through them. Harder rounds get a twistier track, a
+        // narrower road, more laps / treats / crates, faster racers, lower
+        // find chances, and a Rabbit who naps less and sprints more.
+        var ROUNDS = [
+          {
+            label: "Round 1", track: "Garden Curves", level: "Easy", stars: "⭐",
+            desc: "Sit back and watch them race around the winding garden course — gentle curves and bends like a real race-car track, all on their own! This is the easy round: a wide track, 2 laps, 12 hidden treats and 6 crates.",
+            laps: 2, width: 90, spots: 12, crates: 6,
+            turtleSpeed: 0.30, rabbitSprint: 0.56, rabbitHop: 0.36,
+            turtleFind: 0.68, rabbitFind: 0.58, rabbitFindSprint: 0.38,
+            sprintP: 0.36, hopP: 0.64, napP: 0.84, searchTime: 0.75,
+            ctrl: [
+              { x: 480, y: 498 }, { x: 265, y: 508 }, { x: 112, y: 452 },
+              { x: 90, y: 332 }, { x: 178, y: 300 }, { x: 104, y: 166 },
+              { x: 205, y: 86 }, { x: 362, y: 70 }, { x: 480, y: 138 },
+              { x: 612, y: 66 }, { x: 798, y: 92 }, { x: 866, y: 202 },
+              { x: 762, y: 268 }, { x: 868, y: 382 }, { x: 796, y: 488 },
+              { x: 638, y: 510 }
+            ]
+          },
+          {
+            label: "Round 2", track: "Serpent Run", level: "Harder", stars: "⭐⭐",
+            desc: "A brand-new course — nothing like Round 1! This one snakes all over the garden: a wavy run along the bottom, a hairpin that jabs deep into the middle on the left, a valley dipping across the top, and a zigzag chicane down the right side. The road is much narrower, the racers run faster, Rabbit naps less — and there are 14 hidden treats and 8 crates, harder to spot than Round 1. Halfway round there is ONE side road to a Treasure Stop: a racer can pass it by, or stop off — and whoever stops off can scoop up extra coins 🪙 and diamonds 💎 for bonus points! Diamond crates are worth extra too: a diamond counts as 3 points toward winning.",
+            sideRoad: { u: 0.52, side: -1, len: 118 },
+            laps: 2, width: 58, spots: 14, crates: 8,
+            turtleSpeed: 0.325, rabbitSprint: 0.66, rabbitHop: 0.43,
+            turtleFind: 0.57, rabbitFind: 0.47, rabbitFindSprint: 0.27,
+            sprintP: 0.44, hopP: 0.72, napP: 0.91, searchTime: 0.65,
+            ctrl: [
+              { x: 500, y: 505 }, { x: 390, y: 545 }, { x: 285, y: 480 },
+              { x: 150, y: 520 }, { x: 95, y: 420 }, { x: 215, y: 360 },
+              { x: 90, y: 280 }, { x: 120, y: 150 }, { x: 210, y: 75 },
+              { x: 330, y: 150 }, { x: 430, y: 70 }, { x: 560, y: 130 },
+              { x: 680, y: 65 }, { x: 830, y: 90 }, { x: 770, y: 200 },
+              { x: 885, y: 270 }, { x: 775, y: 350 }, { x: 870, y: 460 },
+              { x: 690, y: 430 }, { x: 610, y: 530 }
+            ]
+          },
+          {
+            label: "Round 3", track: "Squiggly Hills", level: "Real Hard", stars: "⭐⭐⭐",
+            desc: "The hardest course of all — and the squiggliest! Squiggly lines everywhere: the road wiggles, wiggles and wiggles again all the way around, with tight S-curves, zigzags and wavy bends on every side. It's the narrowest road, 3 full laps, and the fastest racing yet. Rabbit almost never naps now — and there are 16 hidden treats and 10 crates tucked into the sneakiest spots on the track, plus the big treasure chest waiting at the finish line. Watch out: THREE bunk roads branch off the track and they all look the same — but TWO are fake dead ends that mess a racer all up, and ONE is real: it leads to a hidden treasure pile of coins and diamonds! A racer can't tell which is which until they get to the end. And remember — whoever collects the most treasures wins, counted in points, and diamonds count as 3!",
+            bunks: [
+              { u: 0.33, side: 1, len: 92, kind: "fake" },
+              { u: 0.52, side: -1, len: 104, kind: "real" },
+              { u: 0.71, side: -1, len: 92, kind: "fake" }
+            ],
+            laps: 3, width: 42, spots: 16, crates: 10,
+            turtleSpeed: 0.33, rabbitSprint: 0.71, rabbitHop: 0.46,
+            turtleFind: 0.52, rabbitFind: 0.44, rabbitFindSprint: 0.24,
+            sprintP: 0.52, hopP: 0.80, napP: 0.92, searchTime: 0.55,
+            ctrl: [
+              { x: 480, y: 505 }, { x: 410, y: 545 }, { x: 340, y: 475 },
+              { x: 265, y: 540 }, { x: 190, y: 470 }, { x: 115, y: 525 },
+              { x: 75, y: 440 }, { x: 155, y: 385 }, { x: 70, y: 305 },
+              { x: 150, y: 245 }, { x: 75, y: 165 }, { x: 160, y: 105 },
+              { x: 115, y: 60 }, { x: 220, y: 125 }, { x: 300, y: 60 },
+              { x: 385, y: 130 }, { x: 470, y: 65 }, { x: 555, y: 135 },
+              { x: 640, y: 60 }, { x: 725, y: 130 }, { x: 810, y: 65 },
+              { x: 875, y: 140 }, { x: 795, y: 195 }, { x: 885, y: 260 },
+              { x: 790, y: 315 }, { x: 885, y: 380 }, { x: 795, y: 435 },
+              { x: 870, y: 505 }, { x: 760, y: 470 }, { x: 680, y: 540 },
+              { x: 590, y: 475 }, { x: 535, y: 545 }
+            ]
+          }
+        ];
+        var roundIdx = 0;
+        function round() { return ROUNDS[roundIdx]; }
+        var TOTAL = Math.PI * 2 * ROUNDS[0].laps;
+        var SPOT_COUNT = ROUNDS[0].spots;
+        var CRATE_COUNT = ROUNDS[0].crates;
+        var TURTLE_FIND = ROUNDS[0].turtleFind;
+        var RABBIT_FIND = ROUNDS[0].rabbitFind;
+        var RABBIT_FIND_SPRINT = ROUNDS[0].rabbitFindSprint;
+
+        var SAMPLES = [], CUM = [], PATH_LEN = 0;
+        function buildPath(ctrl) {
+          SAMPLES = []; CUM = []; PATH_LEN = 0;
+          var n = ctrl.length, per = 48;
+          for (var i = 0; i < n; i++) {
+            var p0 = ctrl[(i - 1 + n) % n], p1 = ctrl[i], p2 = ctrl[(i + 1) % n], p3 = ctrl[(i + 2) % n];
+            for (var j = 0; j < per; j++) {
+              var t = j / per, t2 = t * t, t3 = t2 * t;
+              SAMPLES.push({
+                x: 0.5 * ((2 * p1.x) + (-p0.x + p2.x) * t + (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t2 + (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * t3),
+                y: 0.5 * ((2 * p1.y) + (-p0.y + p2.y) * t + (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * t2 + (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * t3)
+              });
+            }
+          }
+          CUM = [0];
+          for (var k = 1; k <= SAMPLES.length; k++) {
+            var a = SAMPLES[k - 1], b = SAMPLES[k % SAMPLES.length];
+            CUM.push(CUM[k - 1] + Math.hypot(b.x - a.x, b.y - a.y));
+          }
+          PATH_LEN = CUM[SAMPLES.length];
+        }
+        function applyRound() {
+          var r = round();
+          TOTAL = Math.PI * 2 * r.laps;
+          SPOT_COUNT = r.spots;
+          CRATE_COUNT = r.crates;
+          TURTLE_FIND = r.turtleFind;
+          RABBIT_FIND = r.rabbitFind;
+          RABBIT_FIND_SPRINT = r.rabbitFindSprint;
+          buildPath(r.ctrl);
+        }
+        // Point + travel direction at u (0..1 around one lap).
+        function pathPoint(u) {
+          u = ((u % 1) + 1) % 1;
+          var d = u * PATH_LEN, lo = 0, hi = CUM.length - 1;
+          while (lo < hi) { var mid = (lo + hi) >> 1; if (CUM[mid + 1] < d) lo = mid + 1; else hi = mid; }
+          var a = SAMPLES[lo % SAMPLES.length], b = SAMPLES[(lo + 1) % SAMPLES.length];
+          var f = (d - CUM[lo]) / ((CUM[lo + 1] - CUM[lo]) || 1);
+          var tx = b.x - a.x, ty = b.y - a.y, m = Math.hypot(tx, ty) || 1;
+          return { x: a.x + tx * f, y: a.y + ty * f, tx: tx / m, ty: ty / m };
+        }
+        function distToPath(x, y) {
+          var best = 1e9;
+          for (var i = 0; i < SAMPLES.length; i += 4) {
+            var dx = SAMPLES[i].x - x, dy = SAMPLES[i].y - y, dd = dx * dx + dy * dy;
+            if (dd < best) best = dd;
+          }
+          return Math.sqrt(best);
+        }
+        function traceTrackPath() {
+          ctx.beginPath();
+          ctx.moveTo(SAMPLES[0].x, SAMPLES[0].y);
+          for (var i = 1; i < SAMPLES.length; i++) ctx.lineTo(SAMPLES[i].x, SAMPLES[i].y);
+          ctx.closePath();
+        }
+        var FOODS = [
+          { e: "🍎", n: "Apple" }, { e: "🥕", n: "Carrot" }, { e: "🍓", n: "Strawberry" },
+          { e: "🍌", n: "Banana" }, { e: "🍇", n: "Grapes" }, { e: "🌽", n: "Corn" },
+          { e: "🍉", n: "Watermelon" }, { e: "🥦", n: "Broccoli" }, { e: "🍐", n: "Pear" },
+          { e: "🍑", n: "Peach" }, { e: "🥒", n: "Cucumber" }, { e: "🍊", n: "Orange" }
+        ];
+        var SPOT_TYPES = ["bush", "tree", "rock", "hay", "barrel", "bush", "tree", "rock", "bush", "hay", "tree", "barrel"];
+
+        // ---------- DOM ----------
+        var el = function (id) { return document.getElementById(id); };
+        var commentaryEl = el("commentary"), lapChip = el("lapChip"), timerChip = el("timerChip"), foundChip = el("foundChip");
+        var turtleBar = el("turtleBar"), rabbitBar = el("rabbitBar"), turtlePct = el("turtlePct"), rabbitPct = el("rabbitPct");
+        var startOverlay = el("startOverlay"), countOverlay = el("countOverlay"), countNum = el("countNum"), endOverlay = el("endOverlay");
+        var pauseBtn = el("pauseBtn");
+
+        // ---------- State ----------
+        var state = "ready"; // ready | countdown | racing | paused | finished
+        var spots = [], flowers = [], grassDots = [], crates = [], bunks = [], sideRoad = null;
+        var turtle, rabbit, raceTime, countStart, lastTs, walkPhase;
+        var soundOn = true, voiceOn = false, timeScale = 1;
+        var floaters = [], confetti = [], pending = [], splinters = [];
+        var lastSpoken = "", lastSpeakAt = 0;
+        var breakInt = null;
+        var audioCtx = null;
+
+        function rand(a, b) { return a + Math.random() * (b - a); }
+        function shuffle(arr) {
+          var a = arr.slice();
+          for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; }
+          return a;
+        }
+        function fmtTime(s) { var m = Math.floor(s / 60), ss = Math.floor(s % 60); return m + ":" + (ss < 10 ? "0" : "") + ss; }
+        function posAt(progress, lane) {
+          var p = pathPoint(progress / (Math.PI * 2));
+          var off = lane || 0;
+          // (ty, -tx) is the outward side of the course, so a negative
+          // lane sits on the inside of the bends, positive on the outside.
+          return {
+            x: p.x + p.ty * off, y: p.y - p.tx * off,
+            ang: Math.atan2(-p.tx, p.ty)
+          };
+        }
+
+        // ---------- Sound ----------
+        function beep(freq, dur, type, vol, when) {
+          if (!soundOn) return;
+          try {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === "suspended") audioCtx.resume();
+            var t = audioCtx.currentTime + (when || 0);
+            var o = audioCtx.createOscillator(), g = audioCtx.createGain();
+            o.type = type || "sine"; o.frequency.value = freq;
+            g.gain.setValueAtTime(vol || 0.12, t);
+            g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+            o.connect(g); g.connect(audioCtx.destination);
+            o.start(t); o.stop(t + dur);
+          } catch (e) { /* sound is a bonus, never a blocker */ }
+        }
+        function popSound() { beep(660, 0.1, "triangle", 0.15); beep(990, 0.14, "triangle", 0.15, 0.07); }
+        function fanfare() { [523, 659, 784, 1047].forEach(function (f, i) { beep(f, 0.22, "triangle", 0.14, i * 0.13); }); }
+
+        // ---------- Commentary ----------
+        function say(text) {
+          commentaryEl.textContent = text;
+          if (voiceOn && "speechSynthesis" in window) {
+            var now = Date.now();
+            if (text !== lastSpoken && now - lastSpeakAt > 1200) {
+              lastSpoken = text; lastSpeakAt = now;
+              try {
+                window.speechSynthesis.cancel();
+                var u = new SpeechSynthesisUtterance(text.replace(/[^\x00-\x7F]/g, "").trim() || text);
+                u.rate = 1.02;
+                window.speechSynthesis.speak(u);
+              } catch (e) { /* ignore */ }
+            }
+          }
+        }
+
+        // ---------- Setup ----------
+        function buildScenery() {
+          flowers = []; grassDots = [];
+          for (var i = 0; i < 90; i++) grassDots.push({ x: rand(15, W - 15), y: rand(15, H - 15), r: rand(1.2, 2.6) });
+          var cols = ["#ff8fab", "#ffd166", "#ffffff", "#f497da", "#ffa552"];
+          for (var j = 0; j < 26; j++) {
+            var fx = 20, fy = 20;
+            for (var tries = 0; tries < 30; tries++) {
+              fx = rand(16, W - 16); fy = rand(16, H - 16);
+              if (distToPath(fx, fy) > 72) break; // keep flowers off the course
+            }
+            flowers.push({ x: fx, y: fy, c: cols[j % cols.length] });
+          }
+        }
+        function buildSpots() {
+          spots = [];
+          var foods = shuffle(FOODS);
+          var base = Math.random();
+          for (var i = 0; i < SPOT_COUNT; i++) {
+            var u = ((base + i / SPOT_COUNT + rand(-0.012, 0.012)) % 1 + 1) % 1;
+            var p = pathPoint(u);
+            var side = i % 2 === 0 ? 1 : -1; // alternate outside / inside of the bends
+            var dist = side > 0 ? 94 : 102;
+            var x = p.x + p.ty * side * dist;
+            var y = p.y - p.tx * side * dist;
+            if (x < 58 || x > W - 58 || y < 52 || y > H - 52) {
+              // No room on that side of the course — use the other side.
+              side = -side;
+              x = p.x + p.ty * side * dist;
+              y = p.y - p.tx * side * dist;
+            }
+            x = Math.max(46, Math.min(W - 46, x)); y = Math.max(46, Math.min(H - 46, y));
+            spots.push({
+              x: x, y: y, ang: u * Math.PI * 2, type: SPOT_TYPES[i % SPOT_TYPES.length],
+              food: foods[i % foods.length], state: "hidden", armedT: true, armedR: true
+            });
+          }
+        }
+        // Points: everything is 1 point EXCEPT a diamond — a diamond is 3.
+        var DIAMOND = { e: "💎", n: "Diamond", points: 3 };
+        var TREASURE_KINDS = [
+          DIAMOND, { e: "🔮", n: "Crystal", points: 1 }, { e: "🍄", n: "Mushroom", points: 1 }
+        ];
+        function itemPoints(item) { return (item && item.points) || 1; }
+        function buildCrates() {
+          crates = [];
+          var base = rand(0.05, 0.2);
+          for (var i = 0; i < CRATE_COUNT; i++) {
+            var u = ((base + i / CRATE_COUNT + rand(-0.015, 0.015)) % 1 + 1) % 1;
+            var a = u * Math.PI * 2;
+            var lane = i % 2 === 0 ? -20 : 22;
+            var p = posAt(a, lane);
+            // Every 3rd crate holds a diamond (extra points!), the rest rotate.
+            var treasure;
+            if (i % 3 === 0) treasure = DIAMOND;
+            else if (i % 4 === 3) { var f = shuffle(FOODS)[0]; treasure = { e: f.e, n: f.n, points: 1 }; }
+            else treasure = TREASURE_KINDS[(i % TREASURE_KINDS.length) || 1];
+            crates.push({
+              x: p.x, y: p.y,
+              ang: ((a % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2),
+              state: "whole", armedT: true, armedR: true, treasure: treasure,
+              isDiamond: treasure === DIAMOND
+            });
+          }
+        }
+        // ---------- Bunk roads (Round 3 only): fake dead-end spurs ----------
+        function buildBunks() {
+          bunks = [];
+          var cfg = round();
+          if (!cfg.bunks) return;
+          cfg.bunks.forEach(function (def) {
+            var p = pathPoint(def.u);
+            var nx = p.ty * def.side, ny = -p.tx * def.side;
+            var len = def.len || 92;
+            var ex = Math.max(38, Math.min(W - 38, p.x + nx * len));
+            var ey = Math.max(38, Math.min(H - 38, p.y + ny * len));
+            var isReal = def.kind === "real";
+            // The ONE real bunk road hides a treasure pile at its end.
+            var loot = null;
+            if (isReal) {
+              var lootDefs = [
+                { e: "🪙", n: "Coin", points: 1, dx: -25, dy: 10 },
+                { e: "🪙", n: "Coin", points: 1, dx: 24, dy: 12 },
+                { e: "💎", n: "Diamond", points: 3, dx: -13, dy: -13 },
+                { e: "💎", n: "Diamond", points: 3, dx: 14, dy: -12 },
+                { e: "🔮", n: "Crystal", points: 1, dx: 0, dy: 15 }
+              ];
+              loot = lootDefs.map(function (d) {
+                return { e: d.e, n: d.n, points: d.points, x: ex + d.dx, y: ey + d.dy, takenBy: null };
+              });
+            }
+            bunks.push({
+              u: def.u, ang: def.u * Math.PI * 2, side: def.side, kind: isReal ? "real" : "fake", loot: loot,
+              sx: p.x, sy: p.y, ex: ex, ey: ey,
+              cx: p.x + nx * len * 0.52 + p.tx * 20,
+              cy: p.y + ny * len * 0.52 + p.ty * 20,
+              armedT: true, armedR: true
+            });
+          });
+        }
+        function bunkPoint(b, t) {
+          var s = 1 - t;
+          return {
+            x: s * s * b.sx + 2 * s * t * b.cx + t * t * b.ex,
+            y: s * s * b.sy + 2 * s * t * b.cy + t * t * b.ey
+          };
+        }
+        // ---------- Side road (Round 2 only): optional Treasure Stop ----------
+        function buildSideRoad() {
+          sideRoad = null;
+          var cfg = round();
+          if (!cfg.sideRoad) return;
+          var def = cfg.sideRoad;
+          var p = pathPoint(def.u);
+          var nx = p.ty * def.side, ny = -p.tx * def.side;
+          var len = def.len || 118;
+          var ex = Math.max(52, Math.min(W - 52, p.x + nx * len));
+          var ey = Math.max(52, Math.min(H - 52, p.y + ny * len));
+          // Loot waiting at the stop: coins (1 pt) and diamonds (3 pts).
+          // Spread in a little pile around the clearing at the end.
+          var lootDefs = [
+            { e: "🪙", n: "Coin", points: 1, dx: -26, dy: -12 },
+            { e: "🪙", n: "Coin", points: 1, dx: 0, dy: 16 },
+            { e: "🪙", n: "Coin", points: 1, dx: 27, dy: -10 },
+            { e: "💎", n: "Diamond", points: 3, dx: -12, dy: 14 },
+            { e: "💎", n: "Diamond", points: 3, dx: 16, dy: 12 }
+          ];
+          sideRoad = {
+            u: def.u, ang: def.u * Math.PI * 2, side: def.side,
+            sx: p.x, sy: p.y, ex: ex, ey: ey,
+            cx: p.x + nx * len * 0.5 - p.tx * 16,
+            cy: p.y + ny * len * 0.5 - p.ty * 16,
+            armedT: true, armedR: true,
+            loot: lootDefs.map(function (d) {
+              return { e: d.e, n: d.n, points: d.points, x: ex + d.dx, y: ey + d.dy, takenBy: null };
+            })
+          };
+        }
+        function sidePoint(s, t) { return bunkPoint(s, t); }
+        function triggerSideRoad(racer, who) {
+          if (roundIdx !== 1 || !sideRoad) return;
+          if (racer.finishAt || raceTime < racer.searchingUntil || raceTime < (racer.sideUntil || 0) || raceTime < (racer.bunkUntil || 0)) return;
+          // Nothing left to grab? Then there's no reason to stop.
+          if (!sideRoad.loot.some(function (l) { return !l.takenBy; })) return;
+          var a = racer.prog % (Math.PI * 2);
+          var diff = Math.abs(a - sideRoad.ang); if (diff > Math.PI) diff = Math.PI * 2 - diff;
+          var armedKey = who === "turtle" ? "armedT" : "armedR";
+          if (diff > 0.35) { sideRoad[armedKey] = true; return; }
+          if (sideRoad[armedKey] && diff < 0.07) {
+            sideRoad[armedKey] = false;
+            // Turtle, slow and noticing things, stops more often. A sprinting
+            // Rabbit usually zooms straight past the turn-off.
+            var chance = who === "turtle" ? 0.62 : (rabbit.mode === "sprint" ? 0.22 : 0.45);
+            if (Math.random() < chance) {
+              var dur = rand(2.6, 3.4);
+              racer.sideUntil = raceTime + dur;
+              racer.sideStart = raceTime;
+              racer.sideDur = dur;
+              racer.sideRef = sideRoad;
+              pending.push({ sideRoad: true, who: who, racer: racer, resolveAt: raceTime + dur * 0.52 });
+              floaters.push({ x: sideRoad.sx, y: sideRoad.sy - 50, text: "🛣️ Stopping off!", life: 1.3, color: "#b97e06" });
+              say((who === "turtle" ? "🐢 Turtle" : "🐇 Rabbit") + " is stopping off at the Treasure Stop — coins and diamonds wait there! 🪙💎");
+              beep(740, 0.12, "triangle", 0.12); beep(988, 0.16, "triangle", 0.12, 0.1);
+            } else {
+              floaters.push({ x: sideRoad.sx, y: sideRoad.sy - 50, text: "Passed the side road! 💨", life: 1.1, color: "#868e96" });
+              if (Math.random() < 0.5) say((who === "turtle" ? "Turtle" : "Rabbit") + " passed the side road by — no stopping off this time!");
+            }
+          }
+        }
+        function collectSideLoot(p) {
+          if (!sideRoad) return;
+          var racer = p.racer, got = [], pts = 0;
+          sideRoad.loot.forEach(function (l) {
+            if (l.takenBy) return;
+            l.takenBy = p.who;
+            racer.basket.push({ e: l.e, n: l.n, points: l.points });
+            pts += l.points;
+            if (l.points === 3) { racer.diamonds++; racer.treasures++; }
+            got.push(l.e);
+          });
+          if (!got.length) {
+            floaters.push({ x: sideRoad.ex, y: sideRoad.ey - 44, text: "All gone — too late!", life: 1.3, color: "#868e96" });
+            say((p.who === "turtle" ? "Turtle" : "Rabbit") + " stopped off — but the Treasure Stop was already emptied!");
+            return;
+          }
+          racer.score += pts;
+          racer.boostUntil = raceTime + 1.6;
+          floaters.push({ x: sideRoad.ex, y: sideRoad.ey - 48, text: got.join("") + " +" + pts + " pts!", life: 1.9, color: "#b97e06" });
+          popSound(); beep(1180, 0.18, "triangle", 0.13, 0.08);
+          say((p.who === "turtle" ? "🐢 Turtle" : "🐇 Rabbit") + " scooped up " + got.join(" ") + " at the Treasure Stop — +" + pts + " points! Now " + racer.score + " points total.");
+          updateBaskets(); updateHUD();
+        }
+        function displayPos(racer) {
+          var base = posAt(racer.prog, racer.lane);
+          if (racer.sideRef && raceTime < racer.sideUntil) {
+            var sfrac = Math.min(1, Math.max(0, (raceTime - racer.sideStart) / (racer.sideDur || 1)));
+            var st = Math.sin(sfrac * Math.PI) * 0.94;
+            var sq = sidePoint(racer.sideRef, st);
+            return { x: sq.x, y: sq.y, ang: base.ang };
+          }
+          if (racer.sideRef && raceTime >= racer.sideUntil) racer.sideRef = null;
+          if (racer.bunkRef && raceTime < racer.bunkUntil) {
+            var frac = Math.min(1, Math.max(0, (raceTime - racer.bunkStart) / (racer.bunkDur || 1)));
+            // Out fast, wobble at the dead end, then back: sin gives 0 -> 1 -> 0
+            var t = Math.sin(frac * Math.PI) * 0.92;
+            var q = bunkPoint(racer.bunkRef, t);
+            return { x: q.x, y: q.y, ang: base.ang };
+          }
+          if (racer.bunkRef && raceTime >= racer.bunkUntil) racer.bunkRef = null;
+          return base;
+        }
+        function collectRealBunkLoot(p) {
+          var b = p.bunk; if (!b || !b.loot) return;
+          var racer = p.racer, got = [], pts = 0;
+          b.loot.forEach(function (l) {
+            if (l.takenBy) return;
+            l.takenBy = p.who;
+            racer.basket.push({ e: l.e, n: l.n, points: l.points });
+            pts += l.points;
+            if (l.points === 3) { racer.diamonds++; racer.treasures++; }
+            got.push(l.e);
+          });
+          if (!got.length) {
+            floaters.push({ x: b.ex, y: b.ey - 44, text: "Treasure already taken!", life: 1.3, color: "#868e96" });
+            say((p.who === "turtle" ? "Turtle" : "Rabbit") + " found the REAL bunk road — but the treasure was already taken!");
+            return;
+          }
+          racer.score += pts;
+          racer.boostUntil = raceTime + 1.6;
+          floaters.push({ x: b.ex, y: b.ey - 50, text: "🎉 REAL ROAD! " + got.join("") + " +" + pts + " pts!", life: 2.2, color: "#b97e06" });
+          fanfare();
+          say("🎉 It's the REAL bunk road! " + (p.who === "turtle" ? "🐢 Turtle" : "🐇 Rabbit") + " found the hidden treasure — " + got.join(" ") + " — +" + pts + " points! Now " + racer.score + " points total.");
+          updateBaskets(); updateHUD();
+        }
+        function triggerBunks(racer, who) {
+          if (roundIdx !== 2 || !bunks.length) return;
+          if (racer.finishAt || raceTime < racer.searchingUntil || raceTime < (racer.bunkUntil || 0) || raceTime < (racer.sideUntil || 0)) return;
+          var a = racer.prog % (Math.PI * 2);
+          for (var i = 0; i < bunks.length; i++) {
+            var b = bunks[i];
+            var diff = Math.abs(a - b.ang); if (diff > Math.PI) diff = Math.PI * 2 - diff;
+            var armedKey = who === "turtle" ? "armedT" : "armedR";
+            if (diff > 0.35) { b[armedKey] = true; continue; }
+            if (b[armedKey] && diff < 0.07) {
+              b[armedKey] = false;
+              // The real road is only worth taking while its treasure lasts.
+              if (b.kind === "real" && b.loot && !b.loot.some(function (l) { return !l.takenBy; })) continue;
+              // Speedy Rabbit, sprinting with its eyes ahead, turns off more often.
+              var chance = (who === "rabbit" && rabbit.mode === "sprint") ? 0.58 : 0.42;
+              if (Math.random() < chance) {
+                var dur = b.kind === "real" ? rand(2.8, 3.6) : rand(2.1, 3.0);
+                racer.bunkUntil = raceTime + dur;
+                racer.bunkStart = raceTime;
+                racer.bunkDur = dur;
+                racer.bunkRef = b;
+                if (b.kind === "real") {
+                  pending.push({ realBunk: true, bunk: b, who: who, racer: racer, resolveAt: raceTime + dur * 0.52 });
+                  floaters.push({ x: b.sx, y: b.sy - 48, text: "Down a bunk road… 🤞", life: 1.3, color: "#664d03" });
+                  say((who === "turtle" ? "🐢 Turtle" : "🐇 Rabbit") + " turned down a bunk road… is it fake — or the REAL one with the treasure?");
+                  beep(520, 0.14, "triangle", 0.11); beep(660, 0.14, "triangle", 0.11, 0.12);
+                } else {
+                  floaters.push({ x: b.ex, y: b.ey - 30, text: "🚧 BUNK ROAD! Dead end!", life: 1.8, color: "#e8590c" });
+                  floaters.push({ x: racerDisplayX(racer), y: racerDisplayY(racer) - 46, text: "😵 Messed up!", life: 1.4, color: "#e8590c" });
+                  say((who === "turtle" ? "🐢 Turtle" : "🐇 Rabbit") + " turned down a bunk road — it's a FAKE! A dead end! All messed up! The other racer keeps collecting…");
+                  beep(180, 0.28, "sawtooth", 0.10); beep(140, 0.3, "sawtooth", 0.09, 0.18);
+                }
+              } else {
+                floaters.push({ x: b.sx, y: b.sy - 48, text: "Phew — skipped the bunk road!", life: 1.0, color: "#2b8a3e" });
+              }
+            }
+          }
+        }
+        function racerDisplayX(racer) { return displayPos(racer).x; }
+        function racerDisplayY(racer) { return displayPos(racer).y; }
+        function newRacer(lane) {
+          return { prog: 0, vel: 0, basket: [], lane: lane, searchingUntil: 0, boostUntil: 0, finishAt: 0, finishBonus: 0, treasures: 0, score: 0, diamonds: 0, onCrate: null, bunkUntil: 0, bunkStart: 0, bunkDur: 0, bunkRef: null, sideUntil: 0, sideStart: 0, sideDur: 0, sideRef: null };
+        }
+        var FIRST_FINISH_BONUS = 5;
+        function updateRoundUI() {
+          var r = round();
+          el("roundChip").textContent = r.label + " · " + r.level;
+          el("startRoundTitle").textContent = r.label + " — " + r.track + " · " + r.level + " " + r.stars;
+          el("startRoundDesc").textContent = r.desc;
+          el("startBtn").textContent = "▶ Start " + r.label;
+          var bunkNote = el("startBunkNote");
+          if (bunkNote) bunkNote.textContent = roundIdx === 2 ? " And watch the 3 bunk roads in Round 3 — two are fake dead ends that mess a racer up, but ONE is real and leads to hidden treasure!" : (roundIdx === 1 ? " And watch the side road in Round 2 — stop off at the Treasure Stop for extra coins and diamonds!" : "");
+          var btns = document.querySelectorAll(".round-btn");
+          for (var i = 0; i < btns.length; i++) {
+            btns[i].setAttribute("aria-pressed", String(Number(btns[i].getAttribute("data-round")) === roundIdx));
+          }
+          var nxt = el("nextRoundBtn");
+          if (roundIdx < ROUNDS.length - 1) {
+            var nr = ROUNDS[roundIdx + 1];
+            nxt.textContent = "▶ Next: " + nr.label + " — " + nr.track + " (" + nr.level + ")";
+          } else {
+            nxt.textContent = "↻ You beat Round 3! Back to Round 1";
+          }
+          canvas.setAttribute("aria-label", r.label + " race course: " + r.track + ", a winding track with curves and bends like a race-car track, where the turtle and rabbit race on their own and search bushes, trees and rocks for hidden fruit and vegetables");
+        }
+        function setRound(i) {
+          roundIdx = ((i % ROUNDS.length) + ROUNDS.length) % ROUNDS.length;
+          applyRound();
+          if (breakInt) { clearInterval(breakInt); breakInt = null; }
+          el("breakOverlay").hidden = true;
+          endOverlay.hidden = true;
+          countOverlay.hidden = true;
+          startOverlay.hidden = false;
+          state = "ready";
+          resetRace();
+          say(round().label + " — " + round().track + " (" + round().level + "). Ready when you are!");
+        }
+        function resetRace() {
+          applyRound();
+          buildScenery(); buildSpots(); buildCrates(); buildBunks(); buildSideRoad();
+          turtle = newRacer(-20);
+          rabbit = newRacer(22);
+          rabbit.mode = "hop"; rabbit.nextModeAt = 1.2;
+          raceTime = 0; walkPhase = 0; floaters = []; confetti = []; pending = []; splinters = [];
+          pauseBtn.textContent = "⏸ Pause";
+          updateBaskets(); updateHUD(); updateRoundUI();
+          say("Ready when you are!");
+        }
+
+        // ---------- Racer brains ----------
+        function rabbitTarget(now) {
+          if (rabbit.finishAt) return 0;
+          var cfg = round();
+          if (now >= rabbit.nextModeAt) {
+            var roll = Math.random();
+            var otherDone = !!turtle.finishAt;
+            if (roll < cfg.sprintP) { rabbit.mode = "sprint"; rabbit.nextModeAt = now + rand(1.8, 3.2); if (rabbit.prog > 0.2 && !otherDone) say("Rabbit zooms ahead! 💨"); }
+            else if (roll < (otherDone ? 0.97 : cfg.hopP)) { rabbit.mode = "hop"; rabbit.nextModeAt = now + rand(2.6, 4.6); }
+            else if (roll < cfg.napP && !otherDone) { rabbit.mode = "nap"; rabbit.nextModeAt = now + rand(2.0, 3.6); say("Rabbit stopped for a nap! 😴 Turtle keeps searching…"); beep(220, 0.25, "sine", 0.07); }
+            else { rabbit.mode = "brag"; rabbit.nextModeAt = now + (otherDone ? rand(0.8, 1.4) : rand(1.6, 2.8)); if (!otherDone) say("Rabbit stopped to brag! 😎 Turtle keeps moving…"); }
+          }
+          return rabbit.mode === "sprint" ? cfg.rabbitSprint : rabbit.mode === "hop" ? cfg.rabbitHop : rabbit.mode === "brag" ? 0.07 : 0;
+        }
+        function turtleTarget() {
+          if (turtle.finishAt) return 0;
+          var base = rabbit.finishAt ? round().turtleSpeed * 1.12 : round().turtleSpeed;
+          return raceTime < turtle.boostUntil ? base * 1.3 : base;
+        }
+
+        // ---------- Searching & collecting ----------
+        function collect(spot, who) {
+          spot.state = who;
+          var racer = who === "turtle" ? turtle : rabbit;
+          racer.basket.push(spot.food);
+          racer.score += itemPoints(spot.food);
+          racer.boostUntil = raceTime + 1.6;
+          floaters.push({ x: spot.x, y: spot.y - 34, text: spot.food.e + " " + spot.food.n + "! +1 pt", life: 1.5, color: who === "turtle" ? "#1f7a33" : "#c2255c" });
+          popSound();
+          var lead = turtle.score - rabbit.score;
+          if (who === "turtle") {
+            say("Turtle found a hidden " + spot.food.n + "! " + spot.food.e + (lead > 0 ? " Turtle leads " + turtle.score + " points to " + rabbit.score + "." : ""));
+          } else {
+            say("Rabbit found a hidden " + spot.food.n + "! " + spot.food.e + (lead < 0 ? " Rabbit leads " + rabbit.score + " points to " + turtle.score + "." : ""));
+          }
+          updateBaskets(); updateHUD();
+        }
+        function triggerSearches(racer, who) {
+          if (racer.finishAt || raceTime < racer.searchingUntil || raceTime < (racer.bunkUntil || 0) || raceTime < (racer.sideUntil || 0)) return;
+          var a = racer.prog % (Math.PI * 2);
+          for (var i = 0; i < spots.length; i++) {
+            var s = spots[i];
+            if (s.state !== "hidden") continue;
+            var sa = ((s.ang % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+            var diff = Math.abs(a - sa); if (diff > Math.PI) diff = Math.PI * 2 - diff;
+            var armedKey = who === "turtle" ? "armedT" : "armedR";
+            if (diff > 0.35) { s[armedKey] = true; continue; }
+            if (s[armedKey] && diff < 0.07) {
+              s[armedKey] = false;
+              // Speedy Rabbit often zooms straight past without even looking.
+              if (who === "rabbit" && rabbit.mode === "sprint" && Math.random() < 0.35) {
+                floaters.push({ x: s.x, y: s.y - 40, text: "Too fast to look! 💨", life: 1.0, color: "#c2255c" });
+                continue;
+              }
+              racer.searchingUntil = raceTime + round().searchTime;
+              pending.push({ spot: s, who: who, racer: racer, resolveAt: raceTime + round().searchTime });
+              floaters.push({ x: s.x, y: s.y - 44, text: "🔍 Searching…", life: 0.8, color: "#664d03" });
+            }
+          }
+        }
+        function triggerCrates(racer, who) {
+          if (racer.finishAt || raceTime < racer.searchingUntil || raceTime < (racer.bunkUntil || 0) || raceTime < (racer.sideUntil || 0)) return;
+          var a = racer.prog % (Math.PI * 2);
+          for (var i = 0; i < crates.length; i++) {
+            var c = crates[i];
+            if (c.state !== "whole") continue;
+            var diff = Math.abs(a - c.ang); if (diff > Math.PI) diff = Math.PI * 2 - diff;
+            var armedKey = who === "turtle" ? "armedT" : "armedR";
+            if (diff > 0.35) { c[armedKey] = true; continue; }
+            if (c[armedKey] && diff < 0.07) {
+              c[armedKey] = false;
+              // Speedy Rabbit often zooms straight past a crate without seeing it.
+              if (who === "rabbit" && rabbit.mode === "sprint" && Math.random() < 0.45) {
+                floaters.push({ x: c.x, y: c.y - 42, text: "Zoomed past a crate! 💨", life: 1.0, color: "#c2255c" });
+                continue;
+              }
+              racer.searchingUntil = raceTime + round().searchTime + 0.05;
+              racer.onCrate = c;
+              pending.push({ crate: c, who: who, racer: racer, resolveAt: raceTime + round().searchTime + 0.05 });
+              floaters.push({ x: c.x, y: c.y - 48, text: "🪵 On the crate…", life: 0.8, color: "#664d03" });
+              if (Math.random() < 0.5) say((who === "turtle" ? "Turtle" : "Rabbit") + " climbed on a crate!");
+            }
+          }
+        }
+        function smashCrate(p) {
+          var c = p.crate, racer = p.racer;
+          racer.onCrate = null;
+          if (c.state !== "whole") return;
+          c.state = "broken";
+          for (var i = 0; i < 10; i++) {
+            splinters.push({ x: c.x + rand(-12, 12), y: c.y + rand(-8, 8), vx: rand(-70, 70), vy: rand(-95, -10), life: rand(0.5, 0.9), rot: rand(0, 6.3) });
+          }
+          beep(130, 0.16, "square", 0.14); beep(90, 0.22, "square", 0.1, 0.03);
+          racer.basket.push(c.treasure);
+          racer.treasures++;
+          var pts = itemPoints(c.treasure);
+          racer.score += pts;
+          var isDia = c.treasure === DIAMOND;
+          if (isDia) racer.diamonds++;
+          racer.boostUntil = raceTime + 1.6;
+          floaters.push({ x: c.x, y: c.y - 40, text: isDia ? "💥💎 DIAMOND! +3 POINTS!" : "💥 " + c.treasure.e + " " + c.treasure.n + "! +1 pt", life: isDia ? 2.0 : 1.6, color: isDia ? "#b97e06" : (p.who === "turtle" ? "#1f7a33" : "#c2255c") });
+          popSound();
+          if (isDia) beep(1180, 0.2, "triangle", 0.14, 0.06);
+          say(isDia
+            ? (p.who === "turtle" ? "Turtle" : "Rabbit") + " smashed a DIAMOND crate — a diamond! 💎 That's +3 points — extra points toward winning! Now " + racer.score + " points."
+            : (p.who === "turtle" ? "Turtle" : "Rabbit") + " smashed the crate open — a " + c.treasure.n + "! " + c.treasure.e + " +1 point.");
+          updateBaskets(); updateHUD();
+        }
+        function resolveSearches() {
+          for (var i = pending.length - 1; i >= 0; i--) {
+            var p = pending[i];
+            if (raceTime < p.resolveAt) continue;
+            pending.splice(i, 1);
+            if (p.crate) { smashCrate(p); continue; }
+            if (p.sideRoad) { collectSideLoot(p); continue; }
+            if (p.realBunk) { collectRealBunkLoot(p); continue; }
+            if (p.spot.state !== "hidden") {
+              floaters.push({ x: p.spot.x, y: p.spot.y - 40, text: "Too late — taken!", life: 1.0, color: "#868e96" });
+              continue;
+            }
+            var chance = p.who === "turtle" ? TURTLE_FIND : (rabbit.mode === "sprint" ? RABBIT_FIND_SPRINT : RABBIT_FIND);
+            if (Math.random() < chance) collect(p.spot, p.who);
+            else {
+              floaters.push({ x: p.spot.x, y: p.spot.y - 40, text: "Looked… missed it! 👀", life: 1.1, color: "#e8590c" });
+              if (Math.random() < 0.4) say(p.who === "turtle" ? "Turtle searched a hiding spot… missed it this time!" : "Rabbit searched… and missed it! 👀");
+            }
+          }
+        }
+        function nearestRacerDist(s) {
+          var tp = displayPos(turtle), rp = displayPos(rabbit);
+          return Math.min(Math.hypot(s.x - tp.x, s.y - tp.y), Math.hypot(s.x - rp.x, s.y - rp.y));
+        }
+
+        // ---------- HUD / baskets ----------
+        function updateBaskets() {
+          function fill(basketEl, countEl, racer, emptyText) {
+            var items = racer.basket;
+            countEl.textContent = racer.score + " pts";
+            basketEl.innerHTML = items.length
+              ? items.map(function (f) { return '<span title="' + f.n + (itemPoints(f) === 3 ? " — 3 points!" : "") + '">' + f.e + "</span>"; }).join("")
+              : '<span class="none">' + emptyText + "</span>";
+          }
+          fill(el("turtleBasket"), el("turtleCount"), turtle, "Nothing yet — watch Turtle search the hiding spots!");
+          fill(el("rabbitBasket"), el("rabbitCount"), rabbit, "Nothing yet.");
+          el("turtleFinds").textContent = turtle.score + " pts · " + turtle.basket.length + " found";
+          el("rabbitFinds").textContent = rabbit.score + " pts · " + rabbit.basket.length + " found";
+          var tLead = turtle.score > rabbit.score, rLead = rabbit.score > turtle.score;
+          el("turtleLead").hidden = !tLead; el("rabbitLead").hidden = !rLead;
+          el("turtleBasketCard").classList.toggle("leading", tLead);
+          el("rabbitBasketCard").classList.toggle("leading", rLead);
+          foundChip.textContent = "⭐ Turtle " + turtle.score + " pts · Rabbit " + rabbit.score + " pts · 💎 " + (turtle.diamonds + rabbit.diamonds) + " diamonds";
+        }
+        function updateHUD() {
+          var tp = Math.min(100, turtle.prog / TOTAL * 100), rp = Math.min(100, rabbit.prog / TOTAL * 100);
+          turtleBar.style.width = tp + "%"; rabbitBar.style.width = rp + "%";
+          turtlePct.textContent = Math.floor(tp) + "%"; rabbitPct.textContent = Math.floor(rp) + "%";
+          var lap = Math.min(round().laps, Math.floor(Math.max(turtle.prog, rabbit.prog) / (Math.PI * 2)) + 1);
+          lapChip.textContent = "Lap " + lap + " of " + round().laps;
+          el("roundChip").textContent = round().label + " · " + round().level;
+          timerChip.textContent = "⏱ " + fmtTime(raceTime);
+        }
+
+        // ---------- Drawing ----------
+        function roundRect(x, y, w, h, r) {
+          ctx.beginPath();
+          ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+          ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+        }
+        function drawSpot(s, now) {
+          ctx.save(); ctx.translate(s.x, s.y);
+          var near = state === "racing" && s.state === "hidden" && nearestRacerDist(s) < 135;
+          if (near) {
+            var pulse = 34 + Math.sin(now * 6) * 5;
+            ctx.beginPath(); ctx.arc(0, 0, pulse, 0, Math.PI * 2);
+            ctx.fillStyle = "rgba(255, 209, 26, .35)"; ctx.fill();
+            ctx.lineWidth = 3; ctx.strokeStyle = "#f2a007"; ctx.stroke();
+          }
+          var taken = s.state !== "hidden";
+          ctx.globalAlpha = taken ? 0.55 : 1;
+          if (s.type === "bush") {
+            ctx.fillStyle = "#2e7d32";
+            [[-14, 4, 17], [12, 5, 15], [0, -8, 19], [-2, 8, 16]].forEach(function (c) { ctx.beginPath(); ctx.arc(c[0], c[1], c[2], 0, Math.PI * 2); ctx.fill(); });
+            ctx.fillStyle = "#43a047";
+            [[-8, -4, 9], [8, -8, 8], [2, 4, 8]].forEach(function (c) { ctx.beginPath(); ctx.arc(c[0], c[1], c[2], 0, Math.PI * 2); ctx.fill(); });
+          } else if (s.type === "tree") {
+            ctx.fillStyle = "#8d5a2b"; ctx.fillRect(-5, 2, 10, 22);
+            ctx.fillStyle = "#2e7d32";
+            [[0, -16, 22], [-15, -4, 15], [15, -4, 15]].forEach(function (c) { ctx.beginPath(); ctx.arc(c[0], c[1], c[2], 0, Math.PI * 2); ctx.fill(); });
+            ctx.fillStyle = "#43a047"; ctx.beginPath(); ctx.arc(-5, -18, 11, 0, Math.PI * 2); ctx.fill();
+          } else if (s.type === "rock") {
+            ctx.fillStyle = "#9aa0a3";
+            ctx.beginPath(); ctx.moveTo(-22, 14); ctx.lineTo(-14, -10); ctx.lineTo(2, -18); ctx.lineTo(20, -6); ctx.lineTo(23, 14); ctx.closePath(); ctx.fill();
+            ctx.fillStyle = "#b9bec2"; ctx.beginPath(); ctx.moveTo(-14, -10); ctx.lineTo(2, -18); ctx.lineTo(12, -8); ctx.lineTo(-4, -2); ctx.closePath(); ctx.fill();
+          } else if (s.type === "hay") {
+            ctx.fillStyle = "#e9b949"; roundRect(-24, -14, 48, 30, 12); ctx.fill();
+            ctx.strokeStyle = "#c9930a"; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.moveTo(-24, -2); ctx.lineTo(24, -2); ctx.moveTo(-24, 8); ctx.lineTo(24, 8); ctx.stroke();
+          } else { // barrel
+            ctx.fillStyle = "#a5672f"; roundRect(-16, -20, 32, 40, 8); ctx.fill();
+            ctx.strokeStyle = "#6d4218"; ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.moveTo(-16, -8); ctx.lineTo(16, -8); ctx.moveTo(-16, 8); ctx.lineTo(16, 8); ctx.stroke();
+          }
+          ctx.globalAlpha = 1;
+          if (s.state === "hidden" && near) {
+            var bob = Math.sin(now * 5) * 4;
+            ctx.fillStyle = "#fff"; ctx.strokeStyle = "#f2a007"; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.arc(0, -44 + bob, 14, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+            ctx.fillStyle = "#e8590c"; ctx.font = "700 20px Fredoka, sans-serif";
+            ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("?", 0, -43 + bob);
+          }
+          if (taken) {
+            ctx.font = "20px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+            ctx.fillText(s.state === "turtle" ? "🐢✔" : "🐇✔", 0, -30);
+          }
+          ctx.restore();
+        }
+        function drawCrate(c, now) {
+          ctx.save(); ctx.translate(c.x, c.y);
+          var near = state === "racing" && c.state === "whole" && nearestRacerDist(c) < 120;
+          if (near) {
+            var pulse = 30 + Math.sin(now * 6) * 4;
+            ctx.beginPath(); ctx.arc(0, 0, pulse, 0, Math.PI * 2);
+            ctx.fillStyle = "rgba(255, 209, 26, .3)"; ctx.fill();
+            ctx.lineWidth = 3; ctx.strokeStyle = "#f2a007"; ctx.stroke();
+          }
+          if (c.state === "broken") {
+            ctx.fillStyle = "#a5713d";
+            ctx.save(); ctx.rotate(-0.5); ctx.fillRect(-21, 8, 26, 6); ctx.restore();
+            ctx.save(); ctx.rotate(0.4); ctx.fillRect(-4, 10, 26, 6); ctx.restore();
+            ctx.fillStyle = "#8a5a2b"; ctx.fillRect(-16, 1, 13, 6);
+          } else {
+            var squash = (turtle.onCrate === c || rabbit.onCrate === c) ? 4 : 0;
+            ctx.fillStyle = c.isDiamond ? "#c98f3d" : "#b57e42"; roundRect(-20, -18 + squash, 40, 36 - squash, 4); ctx.fill();
+            ctx.strokeStyle = c.isDiamond ? "#f2a007" : "#7d5227"; ctx.lineWidth = c.isDiamond ? 4 : 3.5; ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(-20, -18 + squash); ctx.lineTo(20, 18); ctx.moveTo(20, -18 + squash); ctx.lineTo(-20, 18); ctx.stroke();
+            ctx.strokeStyle = "#96682f"; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(-20, -6 + squash * 0.6); ctx.lineTo(20, -6 + squash * 0.6); ctx.stroke();
+            if (c.isDiamond) {
+              // Diamond crates sparkle — a diamond inside is worth 3 points!
+              var tw = 1 + Math.sin(now * 7 + c.x) * 0.25;
+              ctx.font = (17 * tw) + "px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+              ctx.fillText("💎", 0, -30 + Math.sin(now * 5 + c.x) * 2);
+              ctx.fillStyle = "#fff3bf"; ctx.font = "700 8px Fredoka, sans-serif";
+              ctx.fillText("3 PTS", 0, 13);
+            }
+          }
+          ctx.restore();
+        }
+        function drawTurtle(p, now) {
+          ctx.save(); ctx.translate(p.x, p.y + (turtle.onCrate ? -17 : 0)); ctx.rotate(p.ang);
+          var wig = Math.sin(walkPhase * 2.2) * (turtle.vel > 0.02 ? 3 : 0);
+          ctx.fillStyle = "#5da24a";
+          [[-14, -14], [14, -14], [-14, 14], [14, 14]].forEach(function (l, i) {
+            ctx.beginPath(); ctx.ellipse(l[0], l[1] + (i % 2 ? wig : -wig), 6, 4.5, 0, 0, Math.PI * 2); ctx.fill();
+          });
+          ctx.fillStyle = "#7ec850"; ctx.beginPath(); ctx.ellipse(0, -26, 6, 8, 0, 0, Math.PI * 2); ctx.fill(); // tail
+          ctx.fillStyle = "#2e8b3e"; ctx.strokeStyle = "#1f6b2c"; ctx.lineWidth = 2.5;
+          ctx.beginPath(); ctx.ellipse(0, 0, 21, 24, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+          ctx.fillStyle = "#3fa34d";
+          ctx.beginPath(); ctx.ellipse(0, 0, 13, 16, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.strokeStyle = "#2e8b3e"; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(-13, -8); ctx.lineTo(13, 8); ctx.moveTo(13, -8); ctx.lineTo(-13, 8); ctx.stroke();
+          ctx.fillStyle = "#7ec850"; ctx.beginPath(); ctx.arc(0, 30, 9.5, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = "#173d10"; ctx.beginPath(); ctx.arc(3.5, 34, 1.9, 0, Math.PI * 2); ctx.fill();
+          ctx.restore();
+          if (state === "racing" && raceTime < turtle.searchingUntil) {
+            ctx.save(); ctx.translate(p.x, p.y - 40); ctx.font = "19px sans-serif"; ctx.textAlign = "center";
+            ctx.fillText("🔍", 0, Math.sin(now * 6) * 3); ctx.restore();
+          }
+          if (turtle.finishAt) {
+            ctx.save(); ctx.translate(p.x, p.y - 42); ctx.font = "19px sans-serif"; ctx.textAlign = "center";
+            ctx.fillText("🏁", 0, 0); ctx.restore();
+          }
+          if (state === "racing" && turtle.bunkRef && raceTime < turtle.bunkUntil) {
+            ctx.save(); ctx.translate(p.x, p.y - 52); ctx.font = "18px sans-serif"; ctx.textAlign = "center";
+            ctx.fillText(turtle.bunkRef.kind === "real" ? "✨💎✨" : "💫😵💫", 0, Math.sin(now * 7) * 3); ctx.restore();
+          }
+          if (state === "racing" && turtle.sideRef && raceTime < turtle.sideUntil) {
+            ctx.save(); ctx.translate(p.x, p.y - 52); ctx.font = "18px sans-serif"; ctx.textAlign = "center";
+            ctx.fillText("✨🪙💎✨", 0, Math.sin(now * 7) * 3); ctx.restore();
+          }
+        }
+        function drawRabbit(p, now) {
+          var hopping = rabbit.vel > 0.02;
+          var bob = hopping ? -Math.abs(Math.sin(walkPhase * 2.6)) * 7 : 0;
+          ctx.save(); ctx.translate(p.x, p.y + bob + (rabbit.onCrate ? -17 : 0)); ctx.rotate(p.ang);
+          ctx.fillStyle = "#e9e4da"; ctx.strokeStyle = "#c9c2b4"; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.ellipse(10, 16, 10, 5, 0.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); // back foot
+          ctx.beginPath(); ctx.ellipse(0, 0, 16, 20, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); // body
+          ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(-8, -14, 6, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); // tail puff
+          ctx.fillStyle = "#e9e4da";
+          ctx.save(); ctx.translate(2, 26); ctx.rotate(0.5); ctx.beginPath(); ctx.ellipse(0, 12, 4.6, 13, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+          ctx.fillStyle = "#f7a8b8"; ctx.beginPath(); ctx.ellipse(0, 12, 2.2, 8.5, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+          ctx.save(); ctx.translate(-6, 26); ctx.rotate(0.15); ctx.fillStyle = "#e9e4da"; ctx.beginPath(); ctx.ellipse(0, 12, 4.6, 13, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+          ctx.fillStyle = "#f7a8b8"; ctx.beginPath(); ctx.ellipse(0, 12, 2.2, 8.5, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+          ctx.fillStyle = "#f5f1ea"; ctx.beginPath(); ctx.arc(0, 24, 10.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); // head
+          ctx.fillStyle = "#173d10";
+          if (rabbit.mode === "nap" && state === "racing") { ctx.fillRect(-6, 26, 5, 1.8); ctx.fillRect(2, 26, 5, 1.8); }
+          else { ctx.beginPath(); ctx.arc(-3.5, 27, 1.9, 0, Math.PI * 2); ctx.fill(); }
+          ctx.fillStyle = "#f06595"; ctx.beginPath(); ctx.arc(1.5, 32.5, 2.1, 0, Math.PI * 2); ctx.fill(); // nose
+          ctx.restore();
+          if (rabbit.mode === "nap" && state === "racing" && !rabbit.finishAt) {
+            ctx.save(); ctx.translate(p.x + 18, p.y - 26);
+            ctx.fillStyle = "#3b5bdb"; ctx.font = "700 " + (15 + Math.sin(now * 2) * 2) + "px Fredoka, sans-serif"; ctx.textAlign = "center";
+            ctx.fillText("Z z z", 0, Math.sin(now * 2) * 3); ctx.restore();
+          }
+          if (rabbit.mode === "brag" && state === "racing" && !rabbit.finishAt) {
+            ctx.save(); ctx.translate(p.x, p.y - 34);
+            ctx.font = "17px sans-serif"; ctx.textAlign = "center"; ctx.fillText("😎", 0, 0); ctx.restore();
+          }
+          if (state === "racing" && raceTime < rabbit.searchingUntil) {
+            ctx.save(); ctx.translate(p.x, p.y - 44); ctx.font = "19px sans-serif"; ctx.textAlign = "center";
+            ctx.fillText("🔍", 0, Math.sin(now * 6) * 3); ctx.restore();
+          }
+          if (rabbit.finishAt) {
+            ctx.save(); ctx.translate(p.x, p.y - 46); ctx.font = "19px sans-serif"; ctx.textAlign = "center";
+            ctx.fillText("🏁", 0, 0); ctx.restore();
+          }
+          if (state === "racing" && rabbit.bunkRef && raceTime < rabbit.bunkUntil) {
+            ctx.save(); ctx.translate(p.x, p.y - 56); ctx.font = "18px sans-serif"; ctx.textAlign = "center";
+            ctx.fillText(rabbit.bunkRef.kind === "real" ? "✨💎✨" : "💫😵💫", 0, Math.sin(now * 7) * 3); ctx.restore();
+          }
+          if (state === "racing" && rabbit.sideRef && raceTime < rabbit.sideUntil) {
+            ctx.save(); ctx.translate(p.x, p.y - 56); ctx.font = "18px sans-serif"; ctx.textAlign = "center";
+            ctx.fillText("✨🪙💎✨", 0, Math.sin(now * 7) * 3); ctx.restore();
+          }
+        }
+        function draw(now) {
+          var grad = ctx.createLinearGradient(0, 0, 0, H);
+          grad.addColorStop(0, "#82c964"); grad.addColorStop(1, "#6ab04c");
+          ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H);
+          ctx.fillStyle = "rgba(255,255,255,.13)";
+          grassDots.forEach(function (d) { ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2); ctx.fill(); });
+          ctx.fillStyle = "#74c0e8"; ctx.beginPath(); ctx.ellipse(370, 312, 58, 27, -0.1, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = "#a5d8f5"; ctx.beginPath(); ctx.ellipse(356, 306, 28, 11, -0.1, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = "#a5713d"; roundRect(505, 278, 118, 68, 10); ctx.fill();
+          ctx.strokeStyle = "#7d5227"; ctx.lineWidth = 3;
+          for (var gy = 292; gy < 340; gy += 16) { ctx.beginPath(); ctx.moveTo(513, gy); ctx.lineTo(615, gy); ctx.stroke(); }
+          ctx.font = "15px sans-serif"; ctx.textAlign = "center";
+          ctx.fillText("🥕", 529, 308); ctx.fillText("🥬", 559, 324); ctx.fillText("🍅", 589, 308); ctx.fillText("🌻", 544, 336);
+          flowers.forEach(function (f) {
+            ctx.fillStyle = f.c;
+            for (var k = 0; k < 5; k++) { var fa = k / 5 * Math.PI * 2; ctx.beginPath(); ctx.arc(f.x + Math.cos(fa) * 3.6, f.y + Math.sin(fa) * 3.6, 2.6, 0, Math.PI * 2); ctx.fill(); }
+            ctx.fillStyle = "#ffd43b"; ctx.beginPath(); ctx.arc(f.x, f.y, 2.2, 0, Math.PI * 2); ctx.fill();
+          });
+          // ----- Side road (Round 2 only): spur to the Treasure Stop -----
+          if (roundIdx === 1 && sideRoad) {
+            (function () {
+              var s = sideRoad;
+              ctx.lineJoin = "round"; ctx.lineCap = "round";
+              ctx.strokeStyle = "#8a6d2f"; ctx.lineWidth = 42;
+              ctx.beginPath(); ctx.moveTo(s.sx, s.sy); ctx.quadraticCurveTo(s.cx, s.cy, s.ex, s.ey); ctx.stroke();
+              ctx.strokeStyle = "#e6c87a"; ctx.lineWidth = 36;
+              ctx.beginPath(); ctx.moveTo(s.sx, s.sy); ctx.quadraticCurveTo(s.cx, s.cy, s.ex, s.ey); ctx.stroke();
+              ctx.strokeStyle = "rgba(255,255,255,.6)"; ctx.lineWidth = 3; ctx.setLineDash([12, 16]);
+              ctx.beginPath(); ctx.moveTo(s.sx, s.sy); ctx.quadraticCurveTo(s.cx, s.cy, s.ex, s.ey); ctx.stroke(); ctx.setLineDash([]);
+              // Treasure Stop clearing at the end, with its loot
+              ctx.save(); ctx.translate(s.ex, s.ey);
+              ctx.beginPath(); ctx.arc(0, 0, 44, 0, Math.PI * 2);
+              ctx.fillStyle = "rgba(255,209,26,.35)"; ctx.fill();
+              ctx.lineWidth = 3; ctx.strokeStyle = "#f2a007"; ctx.stroke();
+              ctx.restore();
+              s.loot.forEach(function (l) {
+                if (l.takenBy) return;
+                ctx.save(); ctx.translate(l.x, l.y + Math.sin(now * 5 + l.x) * 2);
+                ctx.font = "19px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+                ctx.fillText(l.e, 0, 0); ctx.restore();
+              });
+              if (s.loot.some(function (l) { return !l.takenBy; })) {
+                ctx.save(); ctx.translate(s.ex, s.ey - 38);
+                ctx.fillStyle = "#fff"; ctx.strokeStyle = "rgba(20,38,12,.8)"; ctx.lineWidth = 3;
+                ctx.font = "700 10px Fredoka, sans-serif"; ctx.textAlign = "center";
+                ctx.strokeText("TREASURE STOP", 0, 0); ctx.fillText("TREASURE STOP", 0, 0); ctx.restore();
+              }
+              var sSign = sidePoint(s, 0.36);
+              ctx.save(); ctx.translate(sSign.x, sSign.y - 26); ctx.rotate(0.08);
+              ctx.fillStyle = "#5d3a14"; ctx.fillRect(-2, 0, 4, 14);
+              ctx.fillStyle = "#ffe08a"; ctx.strokeStyle = "#b97e06"; ctx.lineWidth = 2;
+              roundRect(-38, -17, 76, 19, 4); ctx.fill(); ctx.stroke();
+              ctx.fillStyle = "#664d03"; ctx.font = "700 9px Fredoka, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+              ctx.fillText("TREASURE STOP →", 0, -7);
+              ctx.restore();
+            })();
+          }
+          // ----- Bunk roads (Round 3 only): 2 fake dead ends + 1 real treasure road -----
+          if (roundIdx === 2 && bunks.length) {
+            bunks.forEach(function (b) {
+              ctx.lineJoin = "round"; ctx.lineCap = "round";
+              // Dirt edge, then dirt centre — almost like the real road, but narrower and cracked
+              ctx.strokeStyle = "#7d5227"; ctx.lineWidth = 40;
+              ctx.beginPath(); ctx.moveTo(b.sx, b.sy); ctx.quadraticCurveTo(b.cx, b.cy, b.ex, b.ey); ctx.stroke();
+              ctx.strokeStyle = "#b08954"; ctx.lineWidth = 34;
+              ctx.beginPath(); ctx.moveTo(b.sx, b.sy); ctx.quadraticCurveTo(b.cx, b.cy, b.ex, b.ey); ctx.stroke();
+              // Cracked / broken centre line — a hint this road is fake
+              ctx.strokeStyle = "rgba(60,35,10,.55)"; ctx.lineWidth = 2.5; ctx.setLineDash([7, 9]);
+              ctx.beginPath(); ctx.moveTo(b.sx, b.sy); ctx.quadraticCurveTo(b.cx, b.cy, b.ex, b.ey); ctx.stroke(); ctx.setLineDash([]);
+              if (b.kind === "real") {
+                // REAL bunk road end: a golden clearing — treasure lives here!
+                ctx.save(); ctx.translate(b.ex, b.ey);
+                ctx.beginPath(); ctx.arc(0, 0, 40, 0, Math.PI * 2);
+                ctx.fillStyle = "rgba(255,209,26,.38)"; ctx.fill();
+                ctx.lineWidth = 3; ctx.strokeStyle = "#f2a007"; ctx.stroke();
+                ctx.restore();
+                if (b.loot) {
+                  b.loot.forEach(function (l) {
+                    if (l.takenBy) return;
+                    ctx.save(); ctx.translate(l.x, l.y + Math.sin(now * 5 + l.x) * 2);
+                    ctx.font = "19px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+                    ctx.fillText(l.e, 0, 0); ctx.restore();
+                  });
+                  if (b.loot.some(function (l) { return !l.takenBy; })) {
+                    ctx.save(); ctx.translate(b.ex, b.ey - 34);
+                    ctx.fillStyle = "#fff"; ctx.strokeStyle = "rgba(20,38,12,.8)"; ctx.lineWidth = 3;
+                    ctx.font = "700 10px Fredoka, sans-serif"; ctx.textAlign = "center";
+                    ctx.strokeText("TREASURE!", 0, 0); ctx.fillText("TREASURE!", 0, 0); ctx.restore();
+                  }
+                }
+              } else {
+                // Fake bunk road end: dead end — rocks + barrier + X
+                ctx.save(); ctx.translate(b.ex, b.ey);
+                ctx.fillStyle = "#868e96";
+                ctx.beginPath(); ctx.arc(-13, 7, 9, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(12, 8, 11, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(0, -4, 8, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = "#e03131"; ctx.fillRect(-20, -18, 40, 9);
+                ctx.fillStyle = "#fff"; ctx.fillRect(-20, -18, 8, 9); ctx.fillRect(-4, -18, 8, 9); ctx.fillRect(12, -18, 8, 9);
+                ctx.strokeStyle = "#c92a2a"; ctx.lineWidth = 4; ctx.lineCap = "round";
+                ctx.beginPath(); ctx.moveTo(-9, -30); ctx.lineTo(9, -14); ctx.moveTo(9, -30); ctx.lineTo(-9, -14); ctx.stroke();
+                ctx.restore();
+              }
+              // Little crooked sign where the fake road branches off
+              var signPos = bunkPoint(b, 0.38);
+              ctx.save(); ctx.translate(signPos.x, signPos.y - 24); ctx.rotate(-0.12);
+              ctx.fillStyle = "#5d3a14"; ctx.fillRect(-2, 0, 4, 14);
+              ctx.fillStyle = "#ffe08a"; ctx.strokeStyle = "#b97e06"; ctx.lineWidth = 2;
+              roundRect(-30, -16, 60, 18, 4); ctx.fill(); ctx.stroke();
+              ctx.fillStyle = "#664d03"; ctx.font = "700 9px Fredoka, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+              ctx.fillText("BUNK ROAD", 0, -7);
+              ctx.restore();
+            });
+          }
+          ctx.lineJoin = "round";
+          ctx.strokeStyle = "#96682f"; ctx.lineWidth = round().width + 10;
+          traceTrackPath(); ctx.stroke();
+          ctx.strokeStyle = "#c98d54"; ctx.lineWidth = round().width;
+          traceTrackPath(); ctx.stroke();
+          ctx.strokeStyle = "rgba(255,255,255,.35)"; ctx.lineWidth = 3; ctx.setLineDash([16, 22]);
+          traceTrackPath(); ctx.stroke(); ctx.setLineDash([]);
+          var sp = pathPoint(0);
+          ctx.save(); ctx.translate(sp.x, sp.y); ctx.rotate(Math.atan2(-sp.tx, sp.ty));
+          for (var r = 0; r < 2; r++) for (var c = 0; c < 9; c++) {
+            ctx.fillStyle = (r + c) % 2 ? "#212529" : "#f8f9fa";
+            ctx.fillRect(-45 + c * 10, -6 + r * 6, 10, 6);
+          }
+          ctx.restore();
+          ctx.save(); ctx.translate(sp.x + sp.ty * 74, sp.y - sp.tx * 74); ctx.fillStyle = "rgba(20,38,12,.75)";
+          roundRect(-52, -14, 104, 26, 13); ctx.fill(); ctx.fillStyle = "#fff";
+          ctx.font = "700 15px Fredoka, sans-serif"; ctx.textAlign = "center"; ctx.fillText("START · FINISH", 0, 5); ctx.restore();
+          if (roundIdx === 2) {
+            // Big treasure chest at the finish line — Round 3 only
+            var chx = sp.x - sp.ty * 78, chy = sp.y + sp.tx * 78;
+            ctx.save(); ctx.translate(chx, chy);
+            ctx.beginPath(); ctx.arc(0, 0, 42, 0, Math.PI * 2); ctx.fillStyle = "rgba(255,209,26,.35)"; ctx.fill();
+            ctx.lineWidth = 3; ctx.strokeStyle = "#f2a007"; ctx.stroke();
+            ctx.fillStyle = "#8a5a2b"; roundRect(-30, -6, 60, 28, 6); ctx.fill(); ctx.strokeStyle = "#5d3a14"; ctx.lineWidth = 3; ctx.stroke();
+            ctx.fillStyle = "#a5713d"; ctx.beginPath(); ctx.arc(0, -6, 30, Math.PI, 0); ctx.closePath(); ctx.fill(); ctx.stroke();
+            ctx.fillStyle = "#f2a007"; ctx.fillRect(-5, -18, 10, 40);
+            ctx.beginPath(); ctx.arc(0, 2, 7, 0, Math.PI * 2); ctx.fillStyle = "#ffd43b"; ctx.fill(); ctx.strokeStyle = "#b97e06"; ctx.lineWidth = 2; ctx.stroke();
+            ctx.font = "18px sans-serif"; ctx.textAlign = "center"; ctx.fillText("💎", -18, -14); ctx.fillText("💎", 18, -14);
+            ctx.fillStyle = "#fff"; ctx.strokeStyle = "rgba(20,38,12,.8)"; ctx.lineWidth = 3;
+            ctx.font = "700 11px Fredoka, sans-serif"; ctx.strokeText("TREASURE", 0, 36); ctx.fillText("TREASURE", 0, 36);
+            ctx.restore();
+          }
+          spots.forEach(function (s) { drawSpot(s, now); });
+          crates.forEach(function (c) { drawCrate(c, now); });
+          splinters.forEach(function (s) {
+            ctx.save(); ctx.translate(s.x, s.y); ctx.rotate(s.rot); ctx.globalAlpha = Math.min(1, s.life * 1.6);
+            ctx.fillStyle = "#a5713d"; ctx.fillRect(-6, -2, 12, 4); ctx.restore();
+          });
+          drawRabbit(displayPos(rabbit), now);
+          drawTurtle(displayPos(turtle), now);
+          floaters.forEach(function (f) {
+            ctx.save(); ctx.globalAlpha = Math.min(1, f.life);
+            ctx.font = "700 21px Fredoka, sans-serif"; ctx.textAlign = "center";
+            ctx.lineWidth = 4; ctx.strokeStyle = "rgba(255,255,255,.9)";
+            ctx.strokeText(f.text, f.x, f.y); ctx.fillStyle = f.color; ctx.fillText(f.text, f.x, f.y);
+            ctx.restore();
+          });
+          confetti.forEach(function (p) {
+            ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+            ctx.fillStyle = p.color; ctx.fillRect(-4, -2.5, 8, 5); ctx.restore();
+          });
+        }
+
+        // ---------- Ad break: slots ready for an ad account ----------
+        var ADS = [
+          { e: "🥕", t: "Carrot Crunch Cereal", s: "The breakfast of very fast rabbits." },
+          { e: "🐢", t: "Slow & Steady Shoe Shine", s: "A shine that lasts the whole race." },
+          { e: "🌻", t: "Sunny Garden Seeds", s: "Grow a garden worth racing through." },
+          { e: "🥬", t: "Burrow Builders", s: "Comfy burrows, built to last." }
+        ];
+        function showBreak(done) {
+          var overlay = el("breakOverlay"), creative = el("adCreative"), count = el("breakCount"), skip = el("skipBreakBtn");
+          var adIdx = Math.floor(Math.random() * ADS.length);
+          var startedAt = Date.now(), total = 9000, finished = false, lastAd = 0;
+          function renderAd() {
+            var ad = ADS[adIdx % ADS.length]; adIdx++;
+            creative.innerHTML = '<div class="ad-emoji">' + ad.e + '</div><div class="ad-title">' + ad.t + '</div><div class="ad-sub">' + ad.s + '</div>';
+          }
+          function finish() {
+            if (finished) return; finished = true;
+            if (breakInt) { clearInterval(breakInt); breakInt = null; }
+            overlay.hidden = true;
+            done();
+          }
+          renderAd();
+          overlay.hidden = false;
+          count.textContent = "Back with the winner in 9…";
+          say("Ad break! We'll be right back with the winner.");
+          skip.onclick = finish;
+          breakInt = setInterval(function () {
+            var elapsed = Date.now() - startedAt;
+            count.textContent = "Back with the winner in " + Math.max(0, Math.ceil((total - elapsed) / 1000)) + "…";
+            if (elapsed - lastAd >= 3000 && elapsed < total) { lastAd = elapsed; renderAd(); }
+            if (elapsed >= total) finish();
+          }, 200);
+        }
+
+        // ---------- Finish: the secret rule decides ----------
+        function endRace() {
+          state = "finished";
+          var t = turtle.score, r = rabbit.score;
+          var first = turtle.finishAt <= rabbit.finishAt ? "turtle" : "rabbit";
+          var winner = t !== r ? (t > r ? "turtle" : "rabbit") : first;
+          var tieBreak = t === r;
+          var winnerName = winner === "turtle" ? "Turtle" : "Rabbit";
+          var firstName = first === "turtle" ? "Turtle" : "Rabbit";
+          el("endTitle").textContent = (winner === "turtle" ? "🐢 Turtle Wins " : "🐇 Rabbit Wins ") + round().label + "!";
+          updateRoundUI();
+          if (tieBreak) {
+            el("endText").textContent = "It's a tie on points — " + t + " points each (including the +5 first-finish bonus for " + firstName + ", and diamonds counting 3)! So whoever crossed the finish line first takes it: " + winnerName + ". What a race!";
+          } else if (winner !== first) {
+            el("endText").textContent = firstName + " crossed the finish line first and got the +5 bonus points — but that's not enough! Whoever has the most points wins — and " + winnerName + " scored the most, " + Math.max(t, r) + " points to " + Math.min(t, r) + ". That's the secret of the game!";
+          } else {
+            el("endText").textContent = winnerName + " crossed first, got the +5 bonus points, AND collected the most treasures — " + Math.max(t, r) + " points to " + Math.min(t, r) + " (diamonds counting 3 points each) — a clean win!";
+          }
+          el("endTurtle").textContent = turtle.basket.length + (turtle.basket.length === 1 ? " item" : " items");
+          el("endRabbit").textContent = rabbit.basket.length + (rabbit.basket.length === 1 ? " item" : " items");
+          el("endFirst").textContent = first === "turtle" ? "🐢 Turtle" : "🐇 Rabbit";
+          el("endTTreasure").textContent = turtle.treasures;
+          el("endRTreasure").textContent = rabbit.treasures;
+          el("endTPoints").textContent = turtle.score;
+          el("endRPoints").textContent = rabbit.score;
+          el("endBonus").textContent = first === "turtle" ? "🐢 Turtle" : "🐇 Rabbit";
+          el("endTDiamonds").textContent = turtle.diamonds;
+          el("endRDiamonds").textContent = rabbit.diamonds;
+          var winBasket = winner === "turtle" ? turtle.basket : rabbit.basket;
+          el("endBasket").textContent = winBasket.length ? (winner === "turtle" ? "🐢 " : "🐇 ") + winBasket.map(function (f) { return f.e; }).join(" ") : "";
+          showBreak(function () {
+            endOverlay.hidden = false;
+            say(winner === "turtle" ? "Turtle wins — with the most finds! 🏆" : "Rabbit wins — with the most finds! 🏆");
+            fanfare();
+            var cols = ["#f03e3e", "#f2a007", "#2f9e44", "#3b5bdb", "#d6336c", "#ffd43b"];
+            for (var i = 0; i < 130; i++) {
+              confetti.push({ x: rand(60, W - 60), y: rand(-40, 180), vy: rand(55, 150), vx: rand(-24, 24), rot: rand(0, 6.3), vr: rand(-3, 3), color: cols[i % cols.length] });
+            }
+          });
+        }
+
+        // ---------- Main loop ----------
+        function stepRacer(racer, target, dt) {
+          if (raceTime < racer.searchingUntil || raceTime < (racer.bunkUntil || 0) || raceTime < (racer.sideUntil || 0)) target = 0;
+          racer.vel += (target - racer.vel) * Math.min(1, dt * (target === 0 ? 4 : 3));
+          if (racer.vel < 0.001 && target === 0) racer.vel = 0;
+          if (!racer.finishAt) racer.prog += racer.vel * dt;
+        }
+        function loop(ts) {
+          var now = ts / 1000;
+          var rawDt = Math.min(0.05, lastTs ? now - lastTs : 0.016);
+          lastTs = now;
+          var dt = rawDt * timeScale;
+
+          if (state === "countdown") {
+            var left = 3 - Math.floor(now - countStart);
+            if (now - countStart >= 3) {
+              countOverlay.hidden = true; state = "racing"; raceTime = 0;
+              say("GO! 🏁 Watch them race — and hunt!");
+              beep(880, 0.3, "triangle", 0.16);
+            } else {
+              var txt = String(Math.max(1, left));
+              if (countNum.textContent !== txt) { countNum.textContent = txt; beep(440, 0.12, "triangle", 0.12); }
+            }
+          }
+
+          if (state === "racing") {
+            raceTime += dt; walkPhase += dt * 6;
+            stepRacer(turtle, turtleTarget(), dt);
+            stepRacer(rabbit, rabbitTarget(raceTime), dt);
+            triggerSearches(turtle, "turtle");
+            triggerSearches(rabbit, "rabbit");
+            triggerCrates(turtle, "turtle");
+            triggerCrates(rabbit, "rabbit");
+            triggerBunks(turtle, "turtle");
+            triggerBunks(rabbit, "rabbit");
+            triggerSideRoad(turtle, "turtle");
+            triggerSideRoad(rabbit, "rabbit");
+            resolveSearches();
+            // finish-line crossings — first across gets +5 bonus points!
+            [["turtle", turtle], ["rabbit", rabbit]].forEach(function (pair) {
+              var who = pair[0], racer = pair[1];
+              if (!racer.finishAt && racer.prog >= TOTAL) {
+                racer.finishAt = raceTime; racer.prog = TOTAL;
+                var other = who === "turtle" ? rabbit : turtle;
+                if (!other.finishAt) {
+                  racer.finishBonus = FIRST_FINISH_BONUS;
+                  racer.score += FIRST_FINISH_BONUS;
+                  var fp = posAt(TOTAL, racer.lane);
+                  floaters.push({ x: fp.x, y: fp.y - 52, text: "🏁 FIRST FINISH! +5 POINTS!", life: 2.2, color: "#b97e06" });
+                  say((who === "turtle" ? "🐢 Turtle" : "🐇 Rabbit") + " crossed the finish line first — +5 bonus points! Now " + racer.score + " points. But " + (who === "turtle" ? "Rabbit" : "Turtle") + " is still hunting…");
+                  beep(784, 0.18, "triangle", 0.13); beep(1047, 0.22, "triangle", 0.13, 0.12);
+                  updateBaskets(); updateHUD();
+                }
+              }
+            });
+            if (turtle.finishAt && rabbit.finishAt) endRace();
+            updateHUD();
+          }
+
+          floaters = floaters.filter(function (f) { f.life -= rawDt; f.y -= rawDt * 34; return f.life > 0; });
+          splinters = splinters.filter(function (s) { s.life -= rawDt; s.x += s.vx * rawDt; s.y += s.vy * rawDt; s.vy += 260 * rawDt; s.rot += rawDt * 6; return s.life > 0; });
+          if (state === "finished") {
+            confetti.forEach(function (p) { p.y += p.vy * rawDt; p.x += p.vx * rawDt; p.rot += p.vr * rawDt; if (p.y > H + 12) { p.y = -12; p.x = rand(60, W - 60); } });
+          }
+          draw(now);
+          requestAnimationFrame(loop);
+        }
+
+        // ---------- Controls ----------
+        function startCountdown() {
+          resetRace();
+          startOverlay.hidden = true; endOverlay.hidden = true;
+          el("breakOverlay").hidden = true;
+          if (breakInt) { clearInterval(breakInt); breakInt = null; }
+          countOverlay.hidden = false; countNum.textContent = "3";
+          countStart = performance.now() / 1000; lastTs = 0;
+          state = "countdown";
+          say("On your marks…");
+          if (soundOn) { try { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === "suspended") audioCtx.resume(); } catch (e) {} }
+        }
+        el("startBtn").addEventListener("click", startCountdown);
+        el("againBtn").addEventListener("click", startCountdown);
+        el("nextRoundBtn").addEventListener("click", function () {
+          setRound(roundIdx + 1);
+          startCountdown();
+        });
+        var roundBtns = document.querySelectorAll(".round-btn");
+        for (var rb = 0; rb < roundBtns.length; rb++) {
+          roundBtns[rb].addEventListener("click", function () {
+            var target = Number(this.getAttribute("data-round"));
+            if (target === roundIdx && state === "ready") return;
+            setRound(target);
+          });
+        }
+        el("restartBtn").addEventListener("click", function () {
+          if (state === "ready") return;
+          startCountdown();
+        });
+        function togglePause() {
+          if (state === "racing") { state = "paused"; pauseBtn.textContent = "▶ Keep Watching"; say("Paused. Take a breather. 🐢"); }
+          else if (state === "paused") { state = "racing"; pauseBtn.textContent = "⏸ Pause"; say("And they're off again!"); }
+        }
+        pauseBtn.addEventListener("click", togglePause);
+        window.addEventListener("keydown", function (e) {
+          if (e.code === "Space" && (state === "racing" || state === "paused")) { e.preventDefault(); togglePause(); }
+        });
+        el("speedBtn").addEventListener("click", function () {
+          var fast = timeScale === 1;
+          timeScale = fast ? 1.8 : 1;
+          this.setAttribute("aria-pressed", String(fast));
+          this.textContent = fast ? "⏩ Speed: Fast" : "⏩ Speed: Normal";
+        });
+        el("soundBtn").addEventListener("click", function () {
+          soundOn = !soundOn;
+          this.setAttribute("aria-pressed", String(soundOn));
+          this.textContent = soundOn ? "🔊 Sound: On" : "🔇 Sound: Off";
+          if (soundOn) popSound();
+        });
+        el("voiceBtn").addEventListener("click", function () {
+          voiceOn = !voiceOn;
+          this.setAttribute("aria-pressed", String(voiceOn));
+          this.textContent = voiceOn ? "🗣️ Read It Aloud: On" : "🗣️ Read It Aloud: Off";
+          if (!voiceOn && "speechSynthesis" in window) window.speechSynthesis.cancel();
+          if (voiceOn) say("I will read the race out loud for you.");
+        });
+
+        resetRace();
+        requestAnimationFrame(loop);
+      })();
+    </script>
+  </body>
+</html>
